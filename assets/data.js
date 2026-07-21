@@ -47,9 +47,8 @@ const ChargerData = (() => {
 
       const data = await response.json();
       console.log('API returned', data.length, 'chargers');
-      console.log('First charger:', data[0]);
 
-      const chargers = parseChargers(data);
+      const chargers = parseChargers(data, lat, lng);
       console.log('Parsed', chargers.length, 'chargers');
 
       cache.set(cacheKey, {
@@ -82,6 +81,38 @@ const ChargerData = (() => {
     3: 'DC Fast Charging'
   };
 
+  const USAGE_MAP = {
+    0: 'Desconocido',
+    1: 'Público - Libre acceso',
+    2: 'Público - Pago en sitio',
+    3: 'Público - Membresia requerida',
+    4: 'Privado - Residencial',
+    5: 'Privado - Staff',
+    6: 'Público - Pago por uso',
+    7: 'Público - Pago en sitio',
+    8: 'Público - Membresia requerida',
+    9: 'Público - Pago en sitio',
+    10: 'Público - Pago por uso'
+  };
+
+  const OPERATOR_MAP = {
+    1: 'Electrify America',
+    2: 'Tesla',
+    3: 'ChargePoint',
+    4: 'EVgo',
+    5: 'Blink',
+    6: 'SemaConnect',
+    7: 'Greenlots',
+    8: 'FLO',
+    9: 'CFE',
+    10: 'IONITY',
+    11: 'Allego',
+    12: 'Fastned',
+    13: 'bp pulse',
+    14: 'Shell Recharge',
+    15: 'EV Connect'
+  };
+
   const CONNECTION_MAP = {
     1: 'CCS (Combo)',
     2: 'CHAdeMO',
@@ -96,30 +127,53 @@ const ChargerData = (() => {
     33: 'GB/T AC'
   };
 
-  function parseChargers(rawData) {
+  function parseChargers(rawData, userLat, userLng) {
     if (!Array.isArray(rawData)) return [];
 
-    return rawData.map(item => ({
-      id: item.ID,
-      name: item.AddressInfo?.Title || 'Sin nombre',
-      address: formatAddress(item.AddressInfo),
-      lat: item.AddressInfo?.Latitude,
-      lng: item.AddressInfo?.Longitude,
-      country: item.AddressInfo?.Country?.Title || item.AddressInfo?.CountryID || '',
-      distance: item.AddressInfo?.Distance,
-      distanceUnit: item.AddressInfo?.DistanceUnit,
-      operator: item.OperatorInfo?.Title || 'Desconocido',
-      network: item.NetworkInfo?.Title || '',
-      status: item.StatusType?.Title || STATUS_MAP[item.StatusTypeID] || 'Unknown',
-      statusId: item.StatusType?.ID || item.StatusTypeID || 0,
-      usage: item.UsageType?.Title || 'Desconocido',
-      cost: item.UsageCost || '',
-      numberOfPoints: item.NumberOfPoints || 0,
-      photos: (item.MediaItems || []).map(m => m.ItemThumbnailURL || m.ItemURL).filter(Boolean).slice(0, 6),
-      comments: (item.UserComments || []).slice(0, 5),
-      connections: parseConnections(item.Connections),
-      numConnections: item.Connections?.length || 0
-    }));
+    return rawData.map(item => {
+      const lat = item.AddressInfo?.Latitude;
+      const lng = item.AddressInfo?.Longitude;
+
+      let distance = null;
+      if (userLat && userLng && lat && lng) {
+        distance = calculateDistance(userLat, userLng, lat, lng);
+      } else if (item.AddressInfo?.Distance) {
+        distance = item.AddressInfo.Distance;
+      }
+
+      return {
+        id: item.ID,
+        name: item.AddressInfo?.Title || 'Sin nombre',
+        address: formatAddress(item.AddressInfo),
+        lat,
+        lng,
+        country: item.AddressInfo?.Country?.Title || item.AddressInfo?.CountryID || '',
+        distance,
+        distanceUnit: 2,
+        operator: item.OperatorInfo?.Title || OPERATOR_MAP[item.OperatorID] || 'Desconocido',
+        network: item.NetworkInfo?.Title || '',
+        status: item.StatusType?.Title || STATUS_MAP[item.StatusTypeID] || 'Unknown',
+        statusId: item.StatusType?.ID || item.StatusTypeID || 0,
+        usage: item.UsageType?.Title || USAGE_MAP[item.UsageTypeID] || 'Desconocido',
+        cost: item.UsageCost || '',
+        numberOfPoints: item.NumberOfPoints || 0,
+        photos: (item.MediaItems || []).map(m => m.ItemThumbnailURL || m.ItemURL).filter(Boolean).slice(0, 6),
+        comments: (item.UserComments || []).slice(0, 5),
+        connections: parseConnections(item.Connections),
+        numConnections: item.Connections?.length || 0
+      };
+    });
+  }
+
+  function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   }
 
   function formatAddress(info) {

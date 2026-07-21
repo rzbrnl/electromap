@@ -37,6 +37,13 @@
     updateStats();
   }
 
+  function formatCost(cost) {
+    if (!cost || cost.trim() === '') return 'Gratis';
+    const lower = cost.toLowerCase();
+    if (lower === 'free' || lower === 'gratis' || lower === 'free charging') return 'Gratis';
+    return cost;
+  }
+
   function formatDistance(distance, distanceUnit) {
     if (!distance) return 'N/A';
     let value = distanceUnit === 2 ? distance : distance * 1.60934;
@@ -141,7 +148,7 @@
     document.getElementById('charger-distance').textContent = formatDistance(charger.distance, charger.distanceUnit);
 
     document.getElementById('charger-points').textContent = charger.numberOfPoints || 'N/A';
-    document.getElementById('charger-cost').textContent = charger.cost || 'Gratis';
+    document.getElementById('charger-cost').textContent = formatCost(charger.cost);
 
     document.getElementById('charger-usage').textContent = charger.usage;
     document.getElementById('charger-network').textContent = charger.network || charger.operator;
