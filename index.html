@@ -13,8 +13,23 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <link rel="stylesheet" href="css/style.css?v=em2" />
+    <link rel="stylesheet" href="css/style.css?v=em3" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'><path d='M7 2v11h3v9l7-12h-4l4-8z'/></svg>" />
+    <script>
+      // Force cache bust - append timestamp to all local requests
+      (function() {
+        const timestamp = Date.now();
+        document.querySelectorAll('link[rel="stylesheet"], script[src]').forEach(el => {
+          const url = el.href || el.src;
+          if (url && !url.startsWith('http')) {
+            const sep = url.includes('?') ? '&' : '?';
+            const newUrl = url.split('?')[0] + sep + 't=' + timestamp;
+            if (el.href) el.href = newUrl;
+            if (el.src) el.src = newUrl;
+          }
+        });
+      })();
+    </script>
   </head>
   <body>
     <svg style="display: none;">
@@ -270,8 +285,8 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script src="assets/data.js?v=em2"></script>
-    <script src="assets/map.js?v=em2"></script>
-    <script src="assets/main.js?v=em2"></script>
+    <script src="assets/data.js?v=em3"></script>
+    <script src="assets/map.js?v=em3"></script>
+    <script src="assets/main.js?v=em3"></script>
   </body>
 </html>
