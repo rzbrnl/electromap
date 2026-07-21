@@ -34,14 +34,23 @@ const ChargerData = (() => {
     });
 
     try {
-      const response = await fetch(`${API_BASE}?${params.toString()}`);
+      const url = `${API_BASE}?${params.toString()}`;
+      console.log('Fetching:', url);
+
+      const response = await fetch(url);
 
       if (!response.ok) {
+        const text = await response.text();
+        console.error('API response:', response.status, text);
         throw new Error(`API error: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('API returned', data.length, 'chargers');
+      console.log('First charger:', data[0]);
+
       const chargers = parseChargers(data);
+      console.log('Parsed', chargers.length, 'chargers');
 
       cache.set(cacheKey, {
         data: chargers,

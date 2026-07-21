@@ -65,8 +65,9 @@ const ChargerMap = (() => {
         crossOrigin: true
       }).addTo(map);
     } else {
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '',
+        subdomains: 'abcd',
         maxZoom: 19,
         crossOrigin: true
       }).addTo(map);
