@@ -123,6 +123,9 @@
     document.getElementById('charger-operator').textContent = charger.operator;
     document.getElementById('charger-address').textContent = charger.address;
 
+    document.getElementById('directions-panel').style.display = 'none';
+    document.getElementById('btn-navigate').style.display = 'flex';
+
     const statusBadge = document.getElementById('charger-status');
     const statusText = document.getElementById('status-text');
 
@@ -191,7 +194,12 @@
     const closeDirectionsBtn = document.getElementById('btn-close-directions');
 
     navigateBtn.onclick = () => {
-      const embedUrl = `https://www.google.com/maps/embed/v1/directions?key=AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0&origin=${userLat || ''},${userLng || ''}&destination=${charger.lat},${charger.lng}&mode=driving`;
+      let embedUrl;
+      if (userLat && userLng) {
+        embedUrl = `https://www.google.com/maps/embed/v1/directions?key=AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0&origin=${userLat},${userLng}&destination=${charger.lat},${charger.lng}&mode=driving`;
+      } else {
+        embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0&q=${charger.lat},${charger.lng}&zoom=15`;
+      }
       mapsEmbed.src = embedUrl;
       directionsPanel.style.display = 'block';
       navigateBtn.style.display = 'none';
