@@ -58,6 +58,7 @@
     try {
       const pos = await ChargerMap.getUserLocation();
       ChargerMap.setUserLocation(pos.lat, pos.lng);
+      ChargerData.setUserLocation(pos.lat, pos.lng);
     } catch (error) {
       console.log('Location not available, using default');
     }
@@ -287,6 +288,7 @@
       const pos = await ChargerMap.getUserLocation();
       ChargerMap.centerOnLocation(pos.lat, pos.lng, 14);
       ChargerMap.setUserLocation(pos.lat, pos.lng);
+      ChargerData.setUserLocation(pos.lat, pos.lng);
       await loadChargers();
     } catch (error) {
       showToast('No se pudo obtener tu ubicación');

@@ -6,6 +6,17 @@ const ChargerData = (() => {
   const API_BASE = 'https://api.openchargemap.io/v3/poi/';
   let cache = new Map();
   let lastFetch = null;
+  let userLat = null;
+  let userLng = null;
+
+  function setUserLocation(lat, lng) {
+    userLat = lat;
+    userLng = lng;
+  }
+
+  function getUserLocation() {
+    return { lat: userLat, lng: userLng };
+  }
 
   function getCacheKey(lat, lng, radius) {
     return `${lat.toFixed(2)}_${lng.toFixed(2)}_${radius}`;
@@ -48,7 +59,7 @@ const ChargerData = (() => {
       const data = await response.json();
       console.log('API returned', data.length, 'chargers');
 
-      const chargers = parseChargers(data, lat, lng);
+      const chargers = parseChargers(data);
       console.log('Parsed', chargers.length, 'chargers');
 
       cache.set(cacheKey, {
@@ -127,7 +138,7 @@ const ChargerData = (() => {
     33: 'GB/T AC'
   };
 
-  function parseChargers(rawData, userLat, userLng) {
+  function parseChargers(rawData) {
     if (!Array.isArray(rawData)) return [];
 
     return rawData.map(item => {
@@ -137,8 +148,6 @@ const ChargerData = (() => {
       let distance = null;
       if (userLat && userLng && lat && lng) {
         distance = calculateDistance(userLat, userLng, lat, lng);
-      } else if (item.AddressInfo?.Distance) {
-        distance = item.AddressInfo.Distance;
       }
 
       return {
@@ -272,6 +281,8 @@ const ChargerData = (() => {
   }
 
   return {
+    setUserLocation,
+    getUserLocation,
     fetchChargers,
     filterChargers,
     searchChargers,
