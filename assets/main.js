@@ -66,7 +66,11 @@
     } catch (error) {
       console.log('Location not available, using default');
     }
-    await loadChargers();
+    try {
+      await loadChargers();
+    } catch (error) {
+      console.error('Error loading chargers:', error);
+    }
     showLoading(false);
   }
 
@@ -190,25 +194,11 @@
 
     const navigateBtn = document.getElementById('btn-navigate');
     const directionsPanel = document.getElementById('directions-panel');
-    const mapsEmbed = document.getElementById('google-maps-embed');
     const closeDirectionsBtn = document.getElementById('btn-close-directions');
 
     navigateBtn.onclick = () => {
-      let embedUrl;
-      if (userLat && userLng) {
-        embedUrl = `https://www.google.com/maps/embed/v1/directions?key=AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0&origin=${userLat},${userLng}&destination=${charger.lat},${charger.lng}&mode=driving`;
-      } else {
-        embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0&q=${charger.lat},${charger.lng}&zoom=15`;
-      }
-      mapsEmbed.src = embedUrl;
-      directionsPanel.style.display = 'block';
-      navigateBtn.style.display = 'none';
-    };
-
-    closeDirectionsBtn.onclick = () => {
-      directionsPanel.style.display = 'none';
-      navigateBtn.style.display = 'flex';
-      mapsEmbed.src = '';
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${charger.lat},${charger.lng}&travelmode=driving`;
+      window.open(mapsUrl, '_blank');
     };
 
     const shareBtn = document.getElementById('btn-share');
