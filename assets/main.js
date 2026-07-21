@@ -5,19 +5,27 @@
 
   let allChargers = [];
   let filteredChargers = [];
-  let currentTheme = localStorage.getItem('em-theme') || 'light';
+  let currentTheme = 'light';
   let filtersVisible = false;
 
-  const API_KEY = localStorage.getItem('em-api-key') || 'YOUR_API_KEY_HERE';
-
   function init() {
-    ChargerData.setApiKey(API_KEY);
+    ChargerData.setApiKey('3d44a410-854e-4da9-b309-2c8e2b29b0f9');
 
     ChargerMap.init(onChargerSelect);
 
+    loadSavedTheme();
     setupEventListeners();
-    applyTheme(currentTheme);
     loadChargers();
+  }
+
+  function loadSavedTheme() {
+    const savedTheme = localStorage.getItem('em-theme');
+    if (savedTheme) {
+      currentTheme = savedTheme;
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      currentTheme = 'dark';
+    }
+    applyTheme(currentTheme);
   }
 
   async function loadChargers() {
@@ -243,13 +251,6 @@
         hideFilters();
       }
     });
-
-    const savedTheme = localStorage.getItem('em-theme');
-    if (savedTheme) {
-      applyTheme(savedTheme);
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      applyTheme('dark');
-    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

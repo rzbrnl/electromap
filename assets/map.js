@@ -20,7 +20,9 @@ const ChargerMap = (() => {
     map = L.map('map', {
       center: [19.4326, -99.1332],
       zoom: 12,
-      zoomControl: false
+      zoomControl: false,
+      maxZoom: 18,
+      minZoom: 3
     });
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
