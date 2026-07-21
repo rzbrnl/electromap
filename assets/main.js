@@ -22,8 +22,6 @@
     const savedTheme = localStorage.getItem('em-theme');
     if (savedTheme) {
       currentTheme = savedTheme;
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      currentTheme = 'dark';
     }
     applyTheme(currentTheme);
   }
@@ -39,7 +37,7 @@
       updateStatus('En vivo');
     } catch (error) {
       console.error('Failed to load chargers:', error);
-      updateStatus('Error de conexión');
+      updateStatus('Error de conexión', true);
     }
   }
 
@@ -159,8 +157,18 @@
     document.getElementById('active-count').textContent = stats.active;
   }
 
-  function updateStatus(text) {
-    document.getElementById('data-source').textContent = text;
+  function updateStatus(text, isError = false) {
+    const statusEl = document.getElementById('data-source');
+    const statusContainer = document.getElementById('status-indicator');
+    statusEl.textContent = text;
+
+    if (isError) {
+      statusContainer.classList.remove('live');
+      statusContainer.classList.add('error');
+    } else {
+      statusContainer.classList.remove('error');
+      statusContainer.classList.add('live');
+    }
   }
 
   function applyTheme(theme) {

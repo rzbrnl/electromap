@@ -30,7 +30,7 @@ const ChargerData = (() => {
       latitude: lat,
       longitude: lng,
       distance: radius,
-      distanceunit: 'Miles',
+      distanceunit: '2',
       maxresults: maxResults,
       compact: 'true',
       verbose: 'false',
@@ -38,7 +38,7 @@ const ChargerData = (() => {
     });
 
     try {
-      const response = await fetch(`${API_BASE}?${params}`);
+      const response = await fetch(`https://api.openchargemap.io/v3/?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);

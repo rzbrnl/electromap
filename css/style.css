@@ -1,31 +1,6 @@
 /* ElectroMap - Global EV Charger Finder */
-/* Theme: Light (default) */
+/* Theme: Dark (default) */
 :root {
-  --bg: #ffffff;
-  --surface: #f8f9fa;
-  --surface-hover: #f0f1f3;
-  --border: #e5e7eb;
-  --text: #111827;
-  --text-muted: #6b7280;
-  --accent: #22c55e;
-  --accent-hover: #16a34a;
-  --accent-light: rgba(34, 197, 94, 0.1);
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --info: #3b82f6;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.08);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
-  --map-filter: none;
-  --topbar-bg: rgba(255,255,255,0.92);
-  --sidebar-bg: rgba(255,255,255,0.96);
-  --bottombar-bg: rgba(255,255,255,0.92);
-  --filters-bg: rgba(255,255,255,0.96);
-}
-
-/* Theme: Dark */
-[data-theme="dark"] {
   --bg: #0f172a;
   --surface: #1e293b;
   --surface-hover: #334155;
@@ -35,6 +10,11 @@
   --accent: #22c55e;
   --accent-hover: #4ade80;
   --accent-light: rgba(34, 197, 94, 0.15);
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  --radius: 12px;
+  --radius-sm: 8px;
   --shadow: 0 4px 24px rgba(0,0,0,0.3);
   --shadow-lg: 0 8px 40px rgba(0,0,0,0.4);
   --map-filter: brightness(0.8) contrast(1.1);
@@ -42,6 +22,26 @@
   --sidebar-bg: rgba(30,41,59,0.96);
   --bottombar-bg: rgba(15,23,42,0.92);
   --filters-bg: rgba(30,41,59,0.96);
+}
+
+/* Theme: Light */
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f8f9fa;
+  --surface-hover: #f0f1f3;
+  --border: #e5e7eb;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-light: rgba(59, 130, 246, 0.1);
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+  --map-filter: none;
+  --topbar-bg: rgba(255,255,255,0.92);
+  --sidebar-bg: rgba(255,255,255,0.96);
+  --bottombar-bg: rgba(255,255,255,0.92);
+  --filters-bg: rgba(255,255,255,0.96);
 }
 
 /* Reset & Base */
@@ -432,6 +432,18 @@ body {
 
 .bottom-stat.live .value {
   color: var(--accent);
+}
+
+.bottom-stat.error {
+  color: var(--danger);
+}
+
+.bottom-stat.error .value {
+  color: var(--danger);
+}
+
+.bottom-stat.error .live-icon {
+  animation: none;
 }
 
 .live-icon {
