@@ -65,6 +65,37 @@ const ChargerData = (() => {
     }
   }
 
+  const STATUS_MAP = {
+    50: 'Operational',
+    10: 'Operational',
+    20: 'Not Operational',
+    30: 'Operational',
+    150: 'Not Operational',
+    75: 'Unknown',
+    0: 'Unknown',
+    999: 'Unknown'
+  };
+
+  const LEVEL_MAP = {
+    1: 'Level 1',
+    2: 'Level 2',
+    3: 'DC Fast Charging'
+  };
+
+  const CONNECTION_MAP = {
+    1: 'CCS (Combo)',
+    2: 'CHAdeMO',
+    3: 'Tesla',
+    4: 'Type 1 (J1772)',
+    5: 'Type 2 (Mennekes)',
+    10: 'Type 1 (J1772)',
+    25: 'Type 2 (Mennekes)',
+    27: 'Tesla',
+    30: 'CCS (Type 2)',
+    32: 'GB/T DC',
+    33: 'GB/T AC'
+  };
+
   function parseChargers(rawData) {
     if (!Array.isArray(rawData)) return [];
 
@@ -74,13 +105,13 @@ const ChargerData = (() => {
       address: formatAddress(item.AddressInfo),
       lat: item.AddressInfo?.Latitude,
       lng: item.AddressInfo?.Longitude,
-      country: item.AddressInfo?.Country?.Title || '',
+      country: item.AddressInfo?.Country?.Title || item.AddressInfo?.CountryID || '',
       distance: item.AddressInfo?.Distance,
       distanceUnit: item.AddressInfo?.DistanceUnit,
       operator: item.OperatorInfo?.Title || 'Desconocido',
       network: item.NetworkInfo?.Title || '',
-      status: item.StatusType?.Title || 'Unknown',
-      statusId: item.StatusType?.ID,
+      status: item.StatusType?.Title || STATUS_MAP[item.StatusTypeID] || 'Unknown',
+      statusId: item.StatusType?.ID || item.StatusTypeID || 0,
       usage: item.UsageType?.Title || 'Desconocido',
       connections: parseConnections(item.Connections),
       numConnections: item.Connections?.length || 0
@@ -103,11 +134,11 @@ const ChargerData = (() => {
     if (!connections || !Array.isArray(connections)) return [];
 
     return connections.map(conn => ({
-      type: conn.ConnectionType?.Title || 'Desconocido',
-      typeId: conn.ConnectionType?.ID,
+      type: conn.ConnectionType?.Title || CONNECTION_MAP[conn.ConnectionTypeID] || 'Desconocido',
+      typeId: conn.ConnectionType?.ID || conn.ConnectionTypeID,
       powerKW: conn.PowerKW || 0,
-      level: conn.Level?.Title || 'Desconocido',
-      levelId: conn.Level?.ID,
+      level: conn.Level?.Title || LEVEL_MAP[conn.LevelID] || 'Desconocido',
+      levelId: conn.Level?.ID || conn.LevelID,
       amps: conn.Amps,
       voltage: conn.Voltage
     }));
@@ -131,14 +162,15 @@ const ChargerData = (() => {
 
       if (filters.status && filters.status.length > 0) {
         const statusMap = {
-          'operational': [50, 10],
+          'operational': [50, 10, 30],
           'non-operational': [20, 30, 150],
           'unknown': [0, 75, 999]
         };
 
+        const chargerStatusId = charger.statusId || 0;
         const matchesStatus = filters.status.some(status => {
           const ids = statusMap[status] || [];
-          return ids.includes(charger.statusId);
+          return ids.includes(chargerStatusId);
         });
 
         if (!matchesStatus) return false;

@@ -82,9 +82,15 @@ const ChargerMap = (() => {
 
   function addChargerMarkers(chargers) {
     markers.clearLayers();
+    console.log('Adding markers for', chargers.length, 'chargers');
 
     chargers.forEach(charger => {
-      if (!charger.lat || !charger.lng) return;
+      if (!charger.lat || !charger.lng) {
+        console.log('Skipping charger without coordinates:', charger.name);
+        return;
+      }
+
+      console.log('Adding marker:', charger.name, 'at', charger.lat, charger.lng);
 
       const colorClass = ChargerData.getMarkerColor(charger);
       const icon = L.divIcon({
