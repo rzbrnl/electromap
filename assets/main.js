@@ -6,33 +6,54 @@
   let allChargers = [];
   let filteredChargers = [];
   let currentTheme = 'dark';
+  let currentUnit = localStorage.getItem('em-unit') || 'km';
   let filtersVisible = false;
 
   function init() {
     ChargerMap.init(onChargerSelect);
 
     loadSavedTheme();
+    loadSavedUnit();
     setupEventListeners();
     detectLocation();
   }
 
   function loadSavedTheme() {
     const savedTheme = localStorage.getItem('em-theme');
-    if (savedTheme) {
-      currentTheme = savedTheme;
-    }
+    if (savedTheme) currentTheme = savedTheme;
     applyTheme(currentTheme);
   }
 
+  function loadSavedUnit() {
+    document.getElementById('unit-label').textContent = currentUnit;
+  }
+
+  function toggleUnit() {
+    currentUnit = currentUnit === 'km' ? 'mi' : 'km';
+    localStorage.setItem('em-unit', currentUnit);
+    document.getElementById('unit-label').textContent = currentUnit;
+    updateStats();
+  }
+
+  function formatDistance(distance, distanceUnit) {
+    if (!distance) return 'N/A';
+    let value = distanceUnit === 2 ? distance : distance * 1.60934;
+    if (currentUnit === 'mi') {
+      value = distanceUnit === 2 ? distance * 0.621371 : distance;
+    }
+    return `${value.toFixed(1)} ${currentUnit}`;
+  }
+
   async function detectLocation() {
+    showLoading(true);
     try {
       const pos = await ChargerMap.getUserLocation();
       ChargerMap.setUserLocation(pos.lat, pos.lng);
-      await loadChargers();
     } catch (error) {
-      console.log('Location not available, using default location');
-      await loadChargers();
+      console.log('Location not available, using default');
     }
+    await loadChargers();
+    showLoading(false);
   }
 
   async function loadChargers() {
@@ -92,10 +113,10 @@
     const statusText = document.getElementById('status-text');
 
     statusBadge.className = 'status-badge';
-    if (charger.statusId === 50 || charger.statusId === 10) {
+    if (charger.statusId === 50 || charger.statusId === 10 || charger.statusId === 30) {
       statusBadge.classList.add('operational');
       statusText.textContent = 'Operativo';
-    } else if (charger.statusId === 20 || charger.statusId === 30) {
+    } else if (charger.statusId === 20 || charger.statusId === 150) {
       statusBadge.classList.add('non-operational');
       statusText.textContent = 'No operativo';
     } else {
@@ -115,10 +136,10 @@
     const levels = [...new Set(charger.connections.map(c => c.level))].join(', ');
     document.getElementById('charger-level').textContent = levels || 'N/A';
 
-    const distance = charger.distance
-      ? `${charger.distance.toFixed(1)} ${charger.distanceUnit === 2 ? 'km' : 'mi'}`
-      : 'N/A';
-    document.getElementById('charger-distance').textContent = distance;
+    document.getElementById('charger-distance').textContent = formatDistance(charger.distance, charger.distanceUnit);
+
+    document.getElementById('charger-points').textContent = charger.numberOfPoints || 'N/A';
+    document.getElementById('charger-cost').textContent = charger.cost || 'Gratis';
 
     document.getElementById('charger-usage').textContent = charger.usage;
     document.getElementById('charger-network').textContent = charger.network || charger.operator;
@@ -132,8 +153,47 @@
       </div>
     `).join('');
 
+    const photosSection = document.getElementById('charger-photos');
+    const photosGrid = document.getElementById('photos-grid');
+    if (charger.photos && charger.photos.length > 0) {
+      photosSection.style.display = 'block';
+      photosGrid.innerHTML = charger.photos.map(url =>
+        `<img src="${url}" alt="Foto del cargador" loading="lazy" onerror="this.style.display='none'">`
+      ).join('');
+    } else {
+      photosSection.style.display = 'none';
+    }
+
     const navigateBtn = document.getElementById('btn-navigate');
     navigateBtn.href = `https://www.google.com/maps/dir/?api=1&destination=${charger.lat},${charger.lng}`;
+
+    const shareBtn = document.getElementById('btn-share');
+    shareBtn.onclick = () => shareLocation(charger);
+  }
+
+  function shareLocation(charger) {
+    const url = `https://www.google.com/maps?q=${charger.lat},${charger.lng}`;
+    const text = `${charger.name} - ${charger.address}`;
+
+    if (navigator.share) {
+      navigator.share({ title: charger.name, text, url });
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Link copiado al portapapeles');
+      });
+    }
+  }
+
+  function showToast(message) {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.remove(), 3000);
   }
 
   function hideSidebar() {
@@ -180,6 +240,15 @@
     }
   }
 
+  function showLoading(show) {
+    const overlay = document.getElementById('loading-overlay');
+    if (show) {
+      overlay.classList.remove('hidden');
+    } else {
+      overlay.classList.add('hidden');
+    }
+  }
+
   function applyTheme(theme) {
     currentTheme = theme;
     document.documentElement.setAttribute('data-theme', theme);
@@ -210,13 +279,14 @@
       ChargerMap.setUserLocation(pos.lat, pos.lng);
       await loadChargers();
     } catch (error) {
-      console.error('Location error:', error);
-      alert('No se pudo obtener tu ubicación. Verifica los permisos del navegador.');
+      showToast('No se pudo obtener tu ubicación');
     }
   }
 
   function setupEventListeners() {
     document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+    document.getElementById('btn-unit').addEventListener('click', toggleUnit);
+    document.getElementById('btn-location').addEventListener('click', goToMyLocation);
     document.getElementById('btn-filters').addEventListener('click', toggleFilters);
     document.getElementById('close-sidebar').addEventListener('click', hideSidebar);
     document.getElementById('close-filters').addEventListener('click', hideFilters);

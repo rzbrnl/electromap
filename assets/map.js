@@ -82,15 +82,9 @@ const ChargerMap = (() => {
 
   function addChargerMarkers(chargers) {
     markers.clearLayers();
-    console.log('Adding markers for', chargers.length, 'chargers');
 
     chargers.forEach(charger => {
-      if (!charger.lat || !charger.lng) {
-        console.log('Skipping charger without coordinates:', charger.name);
-        return;
-      }
-
-      console.log('Adding marker:', charger.name, 'at', charger.lat, charger.lng);
+      if (!charger.lat || !charger.lng) return;
 
       const colorClass = ChargerData.getMarkerColor(charger);
       const icon = L.divIcon({
@@ -112,6 +106,22 @@ const ChargerMap = (() => {
         }
       });
 
+      marker.on('mouseover', (e) => {
+        const popup = L.popup({
+          closeButton: false,
+          autoClose: false,
+          closeOnClick: false,
+          className: 'hover-popup'
+        })
+        .setLatLng(e.latlng)
+        .setContent(createHoverPopup(charger))
+        .openOn(map);
+      });
+
+      marker.on('mouseout', () => {
+        map.closePopup();
+      });
+
       marker.bindPopup(createPopupContent(charger), {
         maxWidth: 250,
         className: 'charger-popup'
@@ -119,6 +129,20 @@ const ChargerMap = (() => {
 
       markers.addLayer(marker);
     });
+  }
+
+  function createHoverPopup(charger) {
+    const power = charger.connections
+      .filter(c => c.powerKW)
+      .map(c => c.powerKW + ' kW')
+      .join(', ') || 'N/A';
+
+    return `
+      <div class="hover-popup">
+        <div class="popup-name">${charger.name}</div>
+        <div class="popup-info">${charger.operator} · ${power}</div>
+      </div>
+    `;
   }
 
   function createPopupContent(charger) {

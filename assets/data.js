@@ -113,6 +113,10 @@ const ChargerData = (() => {
       status: item.StatusType?.Title || STATUS_MAP[item.StatusTypeID] || 'Unknown',
       statusId: item.StatusType?.ID || item.StatusTypeID || 0,
       usage: item.UsageType?.Title || 'Desconocido',
+      cost: item.UsageCost || '',
+      numberOfPoints: item.NumberOfPoints || 0,
+      photos: (item.MediaItems || []).map(m => m.ItemThumbnailURL || m.ItemURL).filter(Boolean).slice(0, 6),
+      comments: (item.UserComments || []).slice(0, 5),
       connections: parseConnections(item.Connections),
       numConnections: item.Connections?.length || 0
     }));
