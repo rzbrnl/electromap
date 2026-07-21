@@ -284,9 +284,6 @@
         </div>
       </div>
       <div class="top-actions">
-        <button class="top-btn" id="btn-unit" title="Cambiar km/mi">
-          <span class="unit-label" id="unit-label">km</span>
-        </button>
         <button class="top-btn" id="btn-filters" title="Filtros">
           <svg class="icon" width="18" height="18">
             <use href="#icon-filter"></use>
@@ -449,7 +446,7 @@
         <span class="value" id="data-source">En vivo</span>
       </div>
       <div class="bottom-stat" style="margin-left: 20px; opacity: 0.5">
-        <span style="font-size: 10px">v1.0</span>
+        <span style="font-size: 10px">v1.1</span>
       </div>
     </footer>
 
@@ -510,6 +507,13 @@
             <label class="filter-option">
               <input type="checkbox" value="unknown" checked /> Desconocido
             </label>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Unidad de Distancia</label>
+          <div class="unit-toggle">
+            <button class="unit-btn active" id="btn-unit-km" data-unit="km">km</button>
+            <button class="unit-btn" id="btn-unit-mi" data-unit="mi">mi</button>
           </div>
         </div>
         <button class="apply-filters-btn" id="btn-apply-filters">

@@ -816,24 +816,33 @@ body {
 }
 
 /* Unit Toggle Button */
-.unit-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-muted);
-  background: var(--surface);
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background 0.2s, color 0.2s;
+.unit-toggle {
+  display: flex;
+  gap: 8px;
 }
 
-.top-btn:hover .unit-label {
-  color: var(--text);
+.unit-btn {
+  flex: 1;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.unit-btn:hover {
   background: var(--surface-hover);
 }
 
-#btn-unit {
-  width: auto;
-  padding: 0 8px;
+.unit-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
 }
 
 /* Share Button */

@@ -25,13 +25,15 @@
   }
 
   function loadSavedUnit() {
-    document.getElementById('unit-label').textContent = currentUnit;
+    document.getElementById('btn-unit-km').classList.toggle('active', currentUnit === 'km');
+    document.getElementById('btn-unit-mi').classList.toggle('active', currentUnit === 'mi');
   }
 
-  function toggleUnit() {
-    currentUnit = currentUnit === 'km' ? 'mi' : 'km';
+  function setUnit(unit) {
+    currentUnit = unit;
     localStorage.setItem('em-unit', currentUnit);
-    document.getElementById('unit-label').textContent = currentUnit;
+    document.getElementById('btn-unit-km').classList.toggle('active', unit === 'km');
+    document.getElementById('btn-unit-mi').classList.toggle('active', unit === 'mi');
     updateStats();
   }
 
@@ -276,6 +278,7 @@
   async function goToMyLocation() {
     try {
       const pos = await ChargerMap.getUserLocation();
+      ChargerMap.centerOnLocation(pos.lat, pos.lng, 14);
       ChargerMap.setUserLocation(pos.lat, pos.lng);
       await loadChargers();
     } catch (error) {
@@ -285,7 +288,8 @@
 
   function setupEventListeners() {
     document.getElementById('btn-theme').addEventListener('click', toggleTheme);
-    document.getElementById('btn-unit').addEventListener('click', toggleUnit);
+    document.getElementById('btn-unit-km').addEventListener('click', () => setUnit('km'));
+    document.getElementById('btn-unit-mi').addEventListener('click', () => setUnit('mi'));
     document.getElementById('btn-location').addEventListener('click', goToMyLocation);
     document.getElementById('btn-filters').addEventListener('click', toggleFilters);
     document.getElementById('close-sidebar').addEventListener('click', hideSidebar);
