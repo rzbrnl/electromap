@@ -796,15 +796,44 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* Charger Tooltip */
+.charger-tooltip {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text) !important;
+  font-family: 'Google Sans', sans-serif !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 8px 12px !important;
+}
+
+.charger-tooltip::before {
+  border-top-color: var(--surface) !important;
+}
+
+[data-theme="dark"] .charger-tooltip::before {
+  border-top-color: var(--surface) !important;
+}
+
 /* Unit Toggle Button */
 .unit-label {
   font-size: 12px;
   font-weight: 700;
   color: var(--text-muted);
+  background: var(--surface);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
 }
 
 .top-btn:hover .unit-label {
   color: var(--text);
+  background: var(--surface-hover);
+}
+
+#btn-unit {
+  width: auto;
+  padding: 0 8px;
 }
 
 /* Share Button */
@@ -945,40 +974,6 @@ body {
 
 .photos-grid img:hover {
   transform: scale(1.05);
-}
-
-/* Hover Popup */
-.hover-popup {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  box-shadow: var(--shadow-lg);
-  font-family: 'Google Sans', sans-serif;
-  max-width: 200px;
-}
-
-.hover-popup .popup-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 4px;
-}
-
-.hover-popup .popup-info {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-/* Leaflet hover popup override */
-.leaflet-popup-content-wrapper {
-  border-radius: var(--radius-sm) !important;
-  box-shadow: var(--shadow-lg) !important;
-}
-
-.leaflet-popup-content {
-  margin: 10px 14px !important;
-  font-family: 'Google Sans', sans-serif !important;
 }
 
 /* Toast notification */

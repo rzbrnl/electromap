@@ -106,43 +106,20 @@ const ChargerMap = (() => {
         }
       });
 
-      marker.on('mouseover', (e) => {
-        const popup = L.popup({
-          closeButton: false,
-          autoClose: false,
-          closeOnClick: false,
-          className: 'hover-popup'
-        })
-        .setLatLng(e.latlng)
-        .setContent(createHoverPopup(charger))
-        .openOn(map);
-      });
+      const power = charger.connections
+        .filter(c => c.powerKW)
+        .map(c => c.powerKW + ' kW')
+        .join(', ') || 'N/A';
 
-      marker.on('mouseout', () => {
-        map.closePopup();
-      });
-
-      marker.bindPopup(createPopupContent(charger), {
-        maxWidth: 250,
-        className: 'charger-popup'
+      marker.bindTooltip(`<b>${charger.name}</b><br>${charger.operator} · ${power}`, {
+        direction: 'top',
+        offset: [0, -20],
+        opacity: 0.95,
+        className: 'charger-tooltip'
       });
 
       markers.addLayer(marker);
     });
-  }
-
-  function createHoverPopup(charger) {
-    const power = charger.connections
-      .filter(c => c.powerKW)
-      .map(c => c.powerKW + ' kW')
-      .join(', ') || 'N/A';
-
-    return `
-      <div class="hover-popup">
-        <div class="popup-name">${charger.name}</div>
-        <div class="popup-info">${charger.operator} · ${power}</div>
-      </div>
-    `;
   }
 
   function createPopupContent(charger) {
