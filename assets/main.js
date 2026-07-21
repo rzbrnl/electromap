@@ -155,10 +155,16 @@
     const levels = [...new Set(charger.connections.map(c => c.level))].join(', ');
     document.getElementById('charger-level').textContent = levels || 'N/A';
 
-    if (charger.distance) {
-      document.getElementById('charger-distance').textContent = `${charger.distance.toFixed(1)} km`;
+    if (charger.drivingDistance) {
+      document.getElementById('charger-distance').textContent = `${charger.drivingDistance.toFixed(1)} km`;
+      document.getElementById('charger-duration').textContent = charger.drivingDuration || '';
+      document.getElementById('charger-duration').style.display = charger.drivingDuration ? 'block' : 'none';
+    } else if (charger.distance) {
+      document.getElementById('charger-distance').textContent = `${charger.distance.toFixed(1)} km (línea recta)`;
+      document.getElementById('charger-duration').style.display = 'none';
     } else {
       document.getElementById('charger-distance').textContent = 'N/A';
+      document.getElementById('charger-duration').style.display = 'none';
     }
 
     document.getElementById('charger-points').textContent = charger.numberOfPoints || 'N/A';

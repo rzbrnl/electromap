@@ -63,6 +63,10 @@ const ChargerData = (() => {
       const chargers = parseChargers(data);
       console.log('Parsed', chargers.length, 'chargers');
 
+      if (userLat && userLng) {
+        await fetchDrivingDistances(chargers);
+      }
+
       cache.set(cacheKey, {
         data: chargers,
         timestamp: Date.now()
