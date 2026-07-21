@@ -154,13 +154,10 @@
     const levels = [...new Set(charger.connections.map(c => c.level))].join(', ');
     document.getElementById('charger-level').textContent = levels || 'N/A';
 
-    if (charger.drivingDistance) {
-      document.getElementById('charger-distance').textContent = `${charger.drivingDistance.toFixed(1)} km`;
-      document.getElementById('charger-duration').textContent = charger.drivingDuration || '';
-      document.getElementById('charger-duration').style.display = charger.drivingDuration ? 'block' : 'none';
+    if (charger.distance) {
+      document.getElementById('charger-distance').textContent = `${charger.distance.toFixed(1)} km`;
     } else {
-      document.getElementById('charger-distance').textContent = formatDistance(charger.distance, charger.distanceUnit);
-      document.getElementById('charger-duration').style.display = 'none';
+      document.getElementById('charger-distance').textContent = 'N/A';
     }
 
     document.getElementById('charger-points').textContent = charger.numberOfPoints || 'N/A';
@@ -227,35 +224,39 @@
     const infoContainer = document.getElementById('directions-info');
 
     modal.classList.remove('hidden');
+    modal.style.display = 'flex';
 
     if (directionsMap) {
       directionsMap.remove();
+      directionsMap = null;
     }
 
-    directionsMap = L.map(mapContainer).setView([charger.lat, charger.lng], 12);
+    setTimeout(() => {
+      directionsMap = L.map(mapContainer).setView([charger.lat, charger.lng], 12);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: ''
-    }).addTo(directionsMap);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: ''
+      }).addTo(directionsMap);
 
-    const destMarker = L.marker([charger.lat, charger.lng]).addTo(directionsMap)
-      .bindPopup(charger.name).openPopup();
+      L.marker([charger.lat, charger.lng]).addTo(directionsMap)
+        .bindPopup(charger.name).openPopup();
 
-    if (userLat && userLng) {
-      const userMarker = L.marker([userLat, userLng]).addTo(directionsMap)
-        .bindPopup('Tu ubicación');
+      if (userLat && userLng) {
+        L.marker([userLat, userLng]).addTo(directionsMap)
+          .bindPopup('Tu ubicación');
 
-      const bounds = L.latLngBounds([
-        [userLat, userLng],
-        [charger.lat, charger.lng]
-      ]);
-      directionsMap.fitBounds(bounds, { padding: [50, 50] });
+        const bounds = L.latLngBounds([
+          [userLat, userLng],
+          [charger.lat, charger.lng]
+        ]);
+        directionsMap.fitBounds(bounds, { padding: [50, 50] });
 
-      fetchRoute(userLat, userLng, charger.lat, charger.lng, directionsMap, infoContainer);
-    } else {
-      directionsMap.setView([charger.lat, charger.lng], 15);
-      infoContainer.innerHTML = '<p>No se pudo obtener tu ubicación para calcular la ruta.</p>';
-    }
+        fetchRoute(userLat, userLng, charger.lat, charger.lng, directionsMap, infoContainer);
+      } else {
+        directionsMap.setView([charger.lat, charger.lng], 15);
+        infoContainer.innerHTML = '<p>No se pudo obtener tu ubicación.</p>';
+      }
+    }, 100);
   }
 
   async function fetchRoute(originLat, originLng, destLat, destLng, map, infoContainer) {
