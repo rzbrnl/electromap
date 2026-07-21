@@ -4,6 +4,7 @@
 const ChargerData = (() => {
   const API_KEY = '3d44a410-854e-4da9-b309-2c8e2b29b0f9';
   const API_BASE = 'https://api.openchargemap.io/v3/poi/';
+  const GOOGLE_MAPS_KEY = 'AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0';
   let cache = new Map();
   let lastFetch = null;
   let userLat = null;
@@ -61,6 +62,10 @@ const ChargerData = (() => {
 
       const chargers = parseChargers(data);
       console.log('Parsed', chargers.length, 'chargers');
+
+      if (userLat && userLng) {
+        await fetchDrivingDistances(chargers);
+      }
 
       cache.set(cacheKey, {
         data: chargers,
@@ -183,6 +188,48 @@ const ChargerData = (() => {
               Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
+  }
+
+  async function fetchDrivingDistances(chargers) {
+    const BATCH_SIZE = 25;
+
+    for (let i = 0; i < chargers.length; i += BATCH_SIZE) {
+      const batch = chargers.slice(i, i + BATCH_SIZE);
+      const destinations = batch
+        .filter(c => c.lat && c.lng)
+        .map(c => `${c.lat},${c.lng}`)
+        .join('|');
+
+      if (!destinations) continue;
+
+      const origin = `${userLat},${userLng}`;
+      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destinations}&key=${GOOGLE_MAPS_KEY}&units=metric&language=es`;
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        if (data.status !== 'OK') continue;
+
+        const elements = data.rows[0]?.elements || [];
+        let destIndex = 0;
+
+        for (const charger of batch) {
+          if (!charger.lat || !charger.lng) continue;
+          if (destIndex < elements.length) {
+            const element = elements[destIndex];
+            if (element.status === 'OK') {
+              charger.drivingDistance = element.distance.value / 1000;
+              charger.drivingDuration = element.duration.text;
+            }
+            destIndex++;
+          }
+        }
+      } catch (error) {
+        console.warn('Google Maps API error:', error);
+      }
+    }
   }
 
   function formatAddress(info) {

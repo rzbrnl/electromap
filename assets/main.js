@@ -146,7 +146,14 @@
     const levels = [...new Set(charger.connections.map(c => c.level))].join(', ');
     document.getElementById('charger-level').textContent = levels || 'N/A';
 
-    document.getElementById('charger-distance').textContent = formatDistance(charger.distance, charger.distanceUnit);
+    if (charger.drivingDistance) {
+      document.getElementById('charger-distance').textContent = `${charger.drivingDistance.toFixed(1)} km`;
+      document.getElementById('charger-duration').textContent = charger.drivingDuration || '';
+      document.getElementById('charger-duration').style.display = charger.drivingDuration ? 'block' : 'none';
+    } else {
+      document.getElementById('charger-distance').textContent = formatDistance(charger.distance, charger.distanceUnit);
+      document.getElementById('charger-duration').style.display = 'none';
+    }
 
     document.getElementById('charger-points').textContent = charger.numberOfPoints || 'N/A';
     document.getElementById('charger-cost').textContent = formatCost(charger.cost);
