@@ -230,7 +230,7 @@
     });
 
     let moveTimeout;
-    map.on('moveend', () => {
+    ChargerMap.onMapEvent('moveend', () => {
       clearTimeout(moveTimeout);
       moveTimeout = setTimeout(() => {
         loadChargers();

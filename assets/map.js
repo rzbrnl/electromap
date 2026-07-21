@@ -11,6 +11,12 @@ const ChargerMap = (() => {
   function init(callback) {
     onChargerSelect = callback;
 
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+      console.error('Map container not found');
+      return;
+    }
+
     map = L.map('map', {
       center: [19.4326, -99.1332],
       zoom: 12,
@@ -36,6 +42,10 @@ const ChargerMap = (() => {
     map.addLayer(markers);
 
     updateTileLayer(false);
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
   }
 
   function updateTileLayer(isDark) {
@@ -47,16 +57,20 @@ const ChargerMap = (() => {
 
     if (isDark) {
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+        attribution: '',
         subdomains: 'abcd',
-        maxZoom: 20
+        maxZoom: 20,
+        crossOrigin: true
       }).addTo(map);
     } else {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
+        attribution: '',
+        maxZoom: 19,
+        crossOrigin: true
       }).addTo(map);
     }
+
+    map.invalidateSize();
   }
 
   function clearMarkers() {
@@ -197,6 +211,12 @@ const ChargerMap = (() => {
     return Math.min(Math.ceil(distance), 100);
   }
 
+  function onMapEvent(event, callback) {
+    if (map) {
+      map.on(event, callback);
+    }
+  }
+
   return {
     init,
     updateTileLayer,
@@ -208,6 +228,7 @@ const ChargerMap = (() => {
     getBounds,
     getCenter,
     getZoom,
-    getRadius
+    getRadius,
+    onMapEvent
   };
 })();

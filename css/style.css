@@ -610,6 +610,11 @@ body {
   border-radius: 0 0 var(--radius-sm) var(--radius-sm) !important;
 }
 
+/* Hide Leaflet attribution */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
 /* Custom Marker */
 .charger-marker {
   display: flex;
