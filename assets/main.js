@@ -8,6 +8,7 @@
   let currentTheme = 'dark';
   let currentUnit = localStorage.getItem('em-unit') || 'km';
   let filtersVisible = false;
+  let legendVisible = false;
   let userLat = null;
   let userLng = null;
 
@@ -187,15 +188,10 @@
     }
 
     const navigateBtn = document.getElementById('btn-navigate');
-    const directionsModal = document.getElementById('directions-modal');
-    const closeDirectionsBtn = document.getElementById('close-directions');
 
-    navigateBtn.onclick = () => {
-      showDirections(charger);
-    };
-
-    closeDirectionsBtn.onclick = () => {
-      directionsModal.classList.add('hidden');
+    navigateBtn.onclick = (e) => {
+      e.preventDefault();
+      showRouteOnMap(charger);
     };
 
     const shareBtn = document.getElementById('btn-share');
@@ -217,102 +213,18 @@
 
   let directionsMap = null;
   let routeControl = null;
+  let routeLayer = null;
 
-  function showDirections(charger) {
-    const modal = document.getElementById('directions-modal');
-    const mapContainer = document.getElementById('directions-map');
-    const infoContainer = document.getElementById('directions-info');
-
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
-
-    if (directionsMap) {
-      directionsMap.remove();
-      directionsMap = null;
+  function showRouteOnMap(charger) {
+    if (routeLayer) {
+      ChargerMap.removeRouteLayer(routeLayer);
+      routeLayer = null;
     }
 
-    setTimeout(() => {
-      directionsMap = L.map(mapContainer).setView([charger.lat, charger.lng], 12);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: ''
-      }).addTo(directionsMap);
-
-      L.marker([charger.lat, charger.lng]).addTo(directionsMap)
-        .bindPopup(charger.name).openPopup();
-
-      if (userLat && userLng) {
-        L.marker([userLat, userLng]).addTo(directionsMap)
-          .bindPopup('Tu ubicación');
-
-        const bounds = L.latLngBounds([
-          [userLat, userLng],
-          [charger.lat, charger.lng]
-        ]);
-        directionsMap.fitBounds(bounds, { padding: [50, 50] });
-
-        fetchRoute(userLat, userLng, charger.lat, charger.lng, directionsMap, infoContainer);
-      } else {
-        directionsMap.setView([charger.lat, charger.lng], 15);
-        infoContainer.innerHTML = '<p>No se pudo obtener tu ubicación.</p>';
-      }
-    }, 100);
-  }
-
-  async function fetchRoute(originLat, originLng, destLat, destLng, map, infoContainer) {
-    infoContainer.innerHTML = '<p>Calculando ruta...</p>';
-
-    try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson&steps=true`;
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.code !== 'Ok') {
-        throw new Error('Route not found');
-      }
-
-      const route = data.routes[0];
-      const coordinates = route.geometry.coordinates.map(c => [c[1], c[0]]);
-
-      L.polyline(coordinates, {
-        color: '#3b82f6',
-        weight: 5,
-        opacity: 0.8
-      }).addTo(map);
-
-      const distance = (route.distance / 1000).toFixed(1);
-      const duration = Math.round(route.duration / 60);
-
-      let stepsHtml = '';
-      if (route.legs && route.legs[0] && route.legs[0].steps) {
-        route.legs[0].steps.forEach((step, i) => {
-          if (step.maneuver && step.maneuver.type !== 'arrive') {
-            const instruction = step.maneuver.type === 'turn' ?
-              (step.maneuver.modifier === 'right' ? 'Gira a la derecha' :
-               step.maneuver.modifier === 'left' ? 'Gira a la izquierda' :
-               'Continúa recto') :
-              step.name ? `Sigue por ${step.name}` : 'Continúa';
-            stepsHtml += `
-              <div class="route-step">
-                <div class="step-icon">${i + 1}</div>
-                <div>
-                  <div class="step-text">${instruction}</div>
-                  <div class="step-distance">${(step.distance / 1000).toFixed(1)} km</div>
-                </div>
-              </div>`;
-          }
-        });
-      }
-
-      infoContainer.innerHTML = `
-        <div style="margin-bottom: 12px; font-weight: 600; color: var(--text);">
-          ${distance} km · ${duration} min
-        </div>
-        ${stepsHtml}
-      `;
-    } catch (error) {
-      console.error('Route error:', error);
-      infoContainer.innerHTML = '<p>No se pudo calcular la ruta. Intenta de nuevo.</p>';
+    if (userLat && userLng) {
+      ChargerMap.showRoute(userLat, userLng, charger.lat, charger.lng, charger.name);
+    } else {
+      showToast('No se pudo obtener tu ubicación');
     }
   }
 
@@ -350,6 +262,20 @@
     filtersVisible = false;
     document.getElementById('filters-panel').classList.add('hidden');
     document.getElementById('btn-filters').classList.remove('active');
+  }
+
+  function toggleLegend() {
+    legendVisible = !legendVisible;
+    const legend = document.getElementById('color-legend');
+    const btn = document.getElementById('btn-legend');
+
+    if (legendVisible) {
+      legend.classList.remove('hidden');
+      btn.classList.add('active');
+    } else {
+      legend.classList.add('hidden');
+      btn.classList.remove('active');
+    }
   }
 
   function updateStats() {
@@ -425,6 +351,7 @@
     document.getElementById('btn-unit-mi').addEventListener('click', () => setUnit('mi'));
     document.getElementById('btn-location').addEventListener('click', goToMyLocation);
     document.getElementById('btn-filters').addEventListener('click', toggleFilters);
+    document.getElementById('btn-legend').addEventListener('click', toggleLegend);
     document.getElementById('close-sidebar').addEventListener('click', hideSidebar);
     document.getElementById('close-filters').addEventListener('click', hideFilters);
 

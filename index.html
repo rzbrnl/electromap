@@ -31,7 +31,7 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
     />
-    <link rel="stylesheet" href="css/style.css?v=em7" />
+    <link rel="stylesheet" href="css/style.css?v=em8" />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'><path d='M7 2v11h3v9l7-12h-4l4-8z'/></svg>"
@@ -284,23 +284,18 @@
         </div>
       </div>
       <div class="top-actions">
+        <button class="top-btn" id="btn-legend" title="Leyenda de colores">
+          <svg class="icon" width="18" height="18"><use href="#icon-charger"></use></svg>
+        </button>
         <button class="top-btn" id="btn-filters" title="Filtros">
-          <svg class="icon" width="18" height="18">
-            <use href="#icon-filter"></use>
-          </svg>
+          <svg class="icon" width="18" height="18"><use href="#icon-filter"></use></svg>
         </button>
         <button class="top-btn" id="btn-location" title="Mi ubicación">
-          <svg class="icon" width="18" height="18">
-            <use href="#icon-location"></use>
-          </svg>
+          <svg class="icon" width="18" height="18"><use href="#icon-location"></use></svg>
         </button>
         <button class="top-btn" id="btn-theme" title="Cambiar tema">
-          <svg class="icon icon-sun" width="18" height="18">
-            <use href="#icon-sun"></use>
-          </svg>
-          <svg class="icon icon-moon" width="18" height="18" style="display: none">
-            <use href="#icon-moon"></use>
-          </svg>
+          <svg class="icon icon-sun" width="18" height="18"><use href="#icon-sun"></use></svg>
+          <svg class="icon icon-moon" width="18" height="18" style="display: none"><use href="#icon-moon"></use></svg>
         </button>
       </div>
     </header>
@@ -402,10 +397,10 @@
           Más información
         </button>
 
-        <a class="navigate-btn" id="btn-navigate" href="#" target="_blank" rel="noopener">
+        <button class="navigate-btn" id="btn-navigate">
           <svg class="icon" width="16" height="16"><use href="#icon-navigation"></use></svg>
           Cómo llegar
-        </a>
+        </button>
         <button class="share-btn" id="btn-share">
           <svg class="icon" width="16" height="16"><use href="#icon-location"></use></svg>
           Compartir ubicación
@@ -418,7 +413,7 @@
       <div class="loading-text">Buscando cargadores...</div>
     </div>
 
-    <div id="color-legend" class="color-legend">
+    <div id="color-legend" class="color-legend hidden">
       <div class="legend-title">Tipos de carga</div>
       <div class="legend-item"><span class="legend-dot fast"></span> DC Rápida</div>
       <div class="legend-item"><span class="legend-dot level2"></span> Nivel 2</div>
@@ -523,23 +518,10 @@
       </div>
     </div>
 
-    <div id="directions-modal" class="directions-modal hidden">
-      <div class="directions-content">
-        <div class="directions-header">
-          <span>Ruta al cargador</span>
-          <button id="close-directions" class="close-btn">
-            <svg class="icon" width="14" height="14"><use href="#icon-close"></use></svg>
-          </button>
-        </div>
-        <div id="directions-map" class="directions-map"></div>
-        <div id="directions-info" class="directions-info"></div>
-      </div>
-    </div>
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script src="assets/data.js?v=em7"></script>
-    <script src="assets/map.js?v=em7"></script>
-    <script src="assets/main.js?v=em7"></script>
+    <script src="assets/data.js?v=em8"></script>
+    <script src="assets/map.js?v=em8"></script>
+    <script src="assets/main.js?v=em8"></script>
   </body>
 </html>

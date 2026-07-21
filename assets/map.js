@@ -227,6 +227,58 @@ const ChargerMap = (() => {
     }
   }
 
+  let currentRoute = null;
+  let routeMarkers = [];
+
+  function showRoute(originLat, originLng, destLat, destLng, destName) {
+    if (currentRoute) {
+      map.removeLayer(currentRoute);
+      currentRoute = null;
+    }
+    routeMarkers.forEach(m => map.removeLayer(m));
+    routeMarkers = [];
+
+    const destIcon = L.divIcon({
+      html: `<div style="width:32px;height:32px;background:#22c55e;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>`,
+      className: '',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+
+    const destMarker = L.marker([destLat, destLng], { icon: destIcon }).addTo(map)
+      .bindPopup(destName);
+    routeMarkers.push(destMarker);
+
+    const bounds = L.latLngBounds([[originLat, originLng], [destLat, destLng]]);
+    map.fitBounds(bounds, { padding: [80, 80] });
+
+    fetch(`https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.code === 'Ok') {
+          const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          currentRoute = L.polyline(coords, {
+            color: '#3b82f6',
+            weight: 5,
+            opacity: 0.8,
+            dashArray: null
+          }).addTo(map);
+
+          const distance = (data.routes[0].distance / 1000).toFixed(1);
+          const duration = Math.round(data.routes[0].duration / 60);
+
+          showToast(`Ruta: ${distance} km · ${duration} min`);
+        }
+      })
+      .catch(err => console.error('Route error:', err));
+  }
+
+  function removeRouteLayer(layer) {
+    if (layer) map.removeLayer(layer);
+  }
+
   return {
     init,
     updateTileLayer,
@@ -239,6 +291,8 @@ const ChargerMap = (() => {
     getCenter,
     getZoom,
     getRadius,
-    onMapEvent
+    onMapEvent,
+    showRoute,
+    removeRouteLayer
   };
 })();
