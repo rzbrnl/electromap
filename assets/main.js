@@ -5,7 +5,7 @@
 
   let allChargers = [];
   let filteredChargers = [];
-  let currentTheme = 'light';
+  let currentTheme = 'dark';
   let filtersVisible = false;
 
   function init() {
@@ -15,7 +15,7 @@
 
     loadSavedTheme();
     setupEventListeners();
-    loadChargers();
+    detectLocation();
   }
 
   function loadSavedTheme() {
@@ -24,6 +24,17 @@
       currentTheme = savedTheme;
     }
     applyTheme(currentTheme);
+  }
+
+  async function detectLocation() {
+    try {
+      const pos = await ChargerMap.getUserLocation();
+      ChargerMap.setUserLocation(pos.lat, pos.lng);
+      await loadChargers();
+    } catch (error) {
+      console.log('Location not available, using default location');
+      await loadChargers();
+    }
   }
 
   async function loadChargers() {
@@ -208,7 +219,6 @@
 
   function setupEventListeners() {
     document.getElementById('btn-theme').addEventListener('click', toggleTheme);
-    document.getElementById('btn-location').addEventListener('click', goToMyLocation);
     document.getElementById('btn-filters').addEventListener('click', toggleFilters);
     document.getElementById('close-sidebar').addEventListener('click', hideSidebar);
     document.getElementById('close-filters').addEventListener('click', hideFilters);
