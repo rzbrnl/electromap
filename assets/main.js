@@ -127,9 +127,6 @@
     document.getElementById('charger-operator').textContent = charger.operator;
     document.getElementById('charger-address').textContent = charger.address;
 
-    document.getElementById('directions-panel').style.display = 'none';
-    document.getElementById('btn-navigate').style.display = 'flex';
-
     const statusBadge = document.getElementById('charger-status');
     const statusText = document.getElementById('status-text');
 
@@ -193,12 +190,15 @@
     }
 
     const navigateBtn = document.getElementById('btn-navigate');
-    const directionsPanel = document.getElementById('directions-panel');
-    const closeDirectionsBtn = document.getElementById('btn-close-directions');
+    const directionsModal = document.getElementById('directions-modal');
+    const closeDirectionsBtn = document.getElementById('close-directions');
 
     navigateBtn.onclick = () => {
-      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${charger.lat},${charger.lng}&travelmode=driving`;
-      window.open(mapsUrl, '_blank');
+      showDirections(charger);
+    };
+
+    closeDirectionsBtn.onclick = () => {
+      directionsModal.classList.add('hidden');
     };
 
     const shareBtn = document.getElementById('btn-share');
@@ -215,6 +215,103 @@
       navigator.clipboard.writeText(url).then(() => {
         showToast('Link copiado al portapapeles');
       });
+    }
+  }
+
+  let directionsMap = null;
+  let routeControl = null;
+
+  function showDirections(charger) {
+    const modal = document.getElementById('directions-modal');
+    const mapContainer = document.getElementById('directions-map');
+    const infoContainer = document.getElementById('directions-info');
+
+    modal.classList.remove('hidden');
+
+    if (directionsMap) {
+      directionsMap.remove();
+    }
+
+    directionsMap = L.map(mapContainer).setView([charger.lat, charger.lng], 12);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: ''
+    }).addTo(directionsMap);
+
+    const destMarker = L.marker([charger.lat, charger.lng]).addTo(directionsMap)
+      .bindPopup(charger.name).openPopup();
+
+    if (userLat && userLng) {
+      const userMarker = L.marker([userLat, userLng]).addTo(directionsMap)
+        .bindPopup('Tu ubicación');
+
+      const bounds = L.latLngBounds([
+        [userLat, userLng],
+        [charger.lat, charger.lng]
+      ]);
+      directionsMap.fitBounds(bounds, { padding: [50, 50] });
+
+      fetchRoute(userLat, userLng, charger.lat, charger.lng, directionsMap, infoContainer);
+    } else {
+      directionsMap.setView([charger.lat, charger.lng], 15);
+      infoContainer.innerHTML = '<p>No se pudo obtener tu ubicación para calcular la ruta.</p>';
+    }
+  }
+
+  async function fetchRoute(originLat, originLng, destLat, destLng, map, infoContainer) {
+    infoContainer.innerHTML = '<p>Calculando ruta...</p>';
+
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson&steps=true`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.code !== 'Ok') {
+        throw new Error('Route not found');
+      }
+
+      const route = data.routes[0];
+      const coordinates = route.geometry.coordinates.map(c => [c[1], c[0]]);
+
+      L.polyline(coordinates, {
+        color: '#3b82f6',
+        weight: 5,
+        opacity: 0.8
+      }).addTo(map);
+
+      const distance = (route.distance / 1000).toFixed(1);
+      const duration = Math.round(route.duration / 60);
+
+      let stepsHtml = '';
+      if (route.legs && route.legs[0] && route.legs[0].steps) {
+        route.legs[0].steps.forEach((step, i) => {
+          if (step.maneuver && step.maneuver.type !== 'arrive') {
+            const instruction = step.maneuver.type === 'turn' ?
+              (step.maneuver.modifier === 'right' ? 'Gira a la derecha' :
+               step.maneuver.modifier === 'left' ? 'Gira a la izquierda' :
+               'Continúa recto') :
+              step.name ? `Sigue por ${step.name}` : 'Continúa';
+            stepsHtml += `
+              <div class="route-step">
+                <div class="step-icon">${i + 1}</div>
+                <div>
+                  <div class="step-text">${instruction}</div>
+                  <div class="step-distance">${(step.distance / 1000).toFixed(1)} km</div>
+                </div>
+              </div>`;
+          }
+        });
+      }
+
+      infoContainer.innerHTML = `
+        <div style="margin-bottom: 12px; font-weight: 600; color: var(--text);">
+          ${distance} km · ${duration} min
+        </div>
+        ${stepsHtml}
+      `;
+    } catch (error) {
+      console.error('Route error:', error);
+      infoContainer.innerHTML = '<p>No se pudo calcular la ruta. Intenta de nuevo.</p>';
     }
   }
 

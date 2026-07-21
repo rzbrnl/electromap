@@ -1008,6 +1008,93 @@ body {
   transform: scale(1.05);
 }
 
+/* Directions Modal */
+.directions-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.directions-modal.hidden {
+  display: none;
+}
+
+.directions-content {
+  background: var(--surface);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.directions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.directions-map {
+  width: 100%;
+  height: 350px;
+}
+
+.directions-info {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.directions-info .route-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.directions-info .route-step:last-child {
+  border-bottom: none;
+}
+
+.directions-info .step-icon {
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.directions-info .step-text {
+  flex: 1;
+  color: var(--text);
+}
+
+.directions-info .step-distance {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* Toast notification */
 .toast {
   position: fixed;
