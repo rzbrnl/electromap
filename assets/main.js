@@ -9,8 +9,6 @@
   let filtersVisible = false;
 
   function init() {
-    ChargerData.setApiKey('3d44a410-854e-4da9-b309-2c8e2b29b0f9');
-
     ChargerMap.init(onChargerSelect);
 
     loadSavedTheme();
