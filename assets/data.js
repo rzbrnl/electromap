@@ -192,13 +192,11 @@ const ChargerData = (() => {
 
   async function fetchDrivingDistances(chargers) {
     const BATCH_SIZE = 25;
+    const chargersWithCoords = chargers.filter(c => c.lat && c.lng);
 
-    for (let i = 0; i < chargers.length; i += BATCH_SIZE) {
-      const batch = chargers.slice(i, i + BATCH_SIZE);
-      const destinations = batch
-        .filter(c => c.lat && c.lng)
-        .map(c => `${c.lat},${c.lng}`)
-        .join('|');
+    for (let i = 0; i < chargersWithCoords.length; i += BATCH_SIZE) {
+      const batch = chargersWithCoords.slice(i, i + BATCH_SIZE);
+      const destinations = batch.map(c => `${c.lat},${c.lng}`).join('|');
 
       if (!destinations) continue;
 
@@ -207,27 +205,25 @@ const ChargerData = (() => {
 
       try {
         const response = await fetch(url);
-        if (!response.ok) continue;
-
         const data = await response.json();
-        if (data.status !== 'OK') continue;
+        console.log('Google Maps response:', data.status);
+
+        if (data.status !== 'OK') {
+          console.warn('Google Maps API error:', data);
+          continue;
+        }
 
         const elements = data.rows[0]?.elements || [];
-        let destIndex = 0;
 
-        for (const charger of batch) {
-          if (!charger.lat || !charger.lng) continue;
-          if (destIndex < elements.length) {
-            const element = elements[destIndex];
-            if (element.status === 'OK') {
-              charger.drivingDistance = element.distance.value / 1000;
-              charger.drivingDuration = element.duration.text;
-            }
-            destIndex++;
+        for (let j = 0; j < batch.length; j++) {
+          const element = elements[j];
+          if (element && element.status === 'OK') {
+            batch[j].drivingDistance = element.distance.value / 1000;
+            batch[j].drivingDuration = element.duration.text;
           }
         }
       } catch (error) {
-        console.warn('Google Maps API error:', error);
+        console.warn('Google Maps fetch error:', error);
       }
     }
   }

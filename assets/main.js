@@ -8,6 +8,8 @@
   let currentTheme = 'dark';
   let currentUnit = localStorage.getItem('em-unit') || 'km';
   let filtersVisible = false;
+  let userLat = null;
+  let userLng = null;
 
   function init() {
     ChargerMap.init(onChargerSelect);
@@ -59,6 +61,8 @@
       const pos = await ChargerMap.getUserLocation();
       ChargerMap.setUserLocation(pos.lat, pos.lng);
       ChargerData.setUserLocation(pos.lat, pos.lng);
+      userLat = pos.lat;
+      userLng = pos.lng;
     } catch (error) {
       console.log('Location not available, using default');
     }
@@ -182,7 +186,22 @@
     }
 
     const navigateBtn = document.getElementById('btn-navigate');
-    navigateBtn.href = `https://www.google.com/maps/dir/?api=1&destination=${charger.lat},${charger.lng}`;
+    const directionsPanel = document.getElementById('directions-panel');
+    const mapsEmbed = document.getElementById('google-maps-embed');
+    const closeDirectionsBtn = document.getElementById('btn-close-directions');
+
+    navigateBtn.onclick = () => {
+      const embedUrl = `https://www.google.com/maps/embed/v1/directions?key=AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0&origin=${userLat || ''},${userLng || ''}&destination=${charger.lat},${charger.lng}&mode=driving`;
+      mapsEmbed.src = embedUrl;
+      directionsPanel.style.display = 'block';
+      navigateBtn.style.display = 'none';
+    };
+
+    closeDirectionsBtn.onclick = () => {
+      directionsPanel.style.display = 'none';
+      navigateBtn.style.display = 'flex';
+      mapsEmbed.src = '';
+    };
 
     const shareBtn = document.getElementById('btn-share');
     shareBtn.onclick = () => shareLocation(charger);
@@ -296,6 +315,8 @@
       ChargerMap.centerOnLocation(pos.lat, pos.lng, 14);
       ChargerMap.setUserLocation(pos.lat, pos.lng);
       ChargerData.setUserLocation(pos.lat, pos.lng);
+      userLat = pos.lat;
+      userLng = pos.lng;
       await loadChargers();
     } catch (error) {
       showToast('No se pudo obtener tu ubicación');

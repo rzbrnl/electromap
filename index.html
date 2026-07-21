@@ -402,10 +402,14 @@
           Más información
         </button>
 
-        <a class="navigate-btn" id="btn-navigate" href="#" target="_blank" rel="noopener">
+        <button class="navigate-btn" id="btn-navigate">
           <svg class="icon" width="16" height="16"><use href="#icon-navigation"></use></svg>
           Cómo llegar
-        </a>
+        </button>
+        <div id="directions-panel" class="directions-panel" style="display: none;">
+          <iframe id="google-maps-embed" width="100%" height="200" style="border:0; border-radius: 8px;" allowfullscreen="" loading="lazy"></iframe>
+          <button class="close-directions-btn" id="btn-close-directions">Cerrar mapa</button>
+        </div>
         <button class="share-btn" id="btn-share">
           <svg class="icon" width="16" height="16"><use href="#icon-location"></use></svg>
           Compartir ubicación
