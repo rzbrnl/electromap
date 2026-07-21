@@ -3,7 +3,7 @@
 
 const ChargerData = (() => {
   const API_KEY = '3d44a410-854e-4da9-b309-2c8e2b29b0f9';
-  const API_BASE = 'https://api.openchargemap.io/v3/';
+  const API_BASE = 'https://api.openchargemap.io/v3/poi/';
   let cache = new Map();
   let lastFetch = null;
 
@@ -26,7 +26,7 @@ const ChargerData = (() => {
       latitude: lat,
       longitude: lng,
       distance: radius,
-      distanceunit: '2',
+      distanceunit: 'km',
       maxresults: maxResults,
       compact: 'true',
       verbose: 'false',
