@@ -312,13 +312,16 @@
 
   var isLoginMode = true;
 
-  function toggleAuthModal() {
-    var user = SupabaseApp.getUser();
-    if (user && user.data && user.data.user) {
-      showProfileModal();
-    } else {
-      var modal = document.getElementById('auth-modal');
-      modal.classList.toggle('hidden');
+  async function toggleAuthModal() {
+    try {
+      var result = await SupabaseApp.getUser();
+      if (result && result.data && result.data.user) {
+        showProfileModal(result.data.user);
+      } else {
+        document.getElementById('auth-modal').classList.remove('hidden');
+      }
+    } catch (e) {
+      document.getElementById('auth-modal').classList.remove('hidden');
     }
   }
 
@@ -327,11 +330,9 @@
     document.getElementById('auth-error').classList.add('hidden');
   }
 
-  function showProfileModal() {
-    var user = SupabaseApp.getUser();
-    if (!user || !user.data || !user.data.user) return;
-    var u = user.data.user;
-    alert('Bienvenido, ' + (u.email || 'Usuario'));
+  function showProfileModal(user) {
+    if (!user) return;
+    alert('Bienvenido, ' + (user.email || 'Usuario'));
   }
 
   function updateUserUI() {
