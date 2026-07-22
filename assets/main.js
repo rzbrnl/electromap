@@ -270,6 +270,28 @@
       e.preventDefault();
       toggleAuthMode();
     });
+    document.getElementById('forgot-password').addEventListener('click', async function(e) {
+      e.preventDefault();
+      var email = document.getElementById('auth-email').value;
+      if (!email) {
+        document.getElementById('auth-error').textContent = 'Ingresa tu correo primero';
+        document.getElementById('auth-error').classList.remove('hidden');
+        return;
+      }
+      try {
+        await SupabaseApp.getClient().auth.resetPasswordForEmail(email, {
+          redirectTo: 'https://electromap.josue.work'
+        });
+        document.getElementById('auth-error').textContent = 'Revisa tu correo para restablecer la contraseña';
+        document.getElementById('auth-error').style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
+        document.getElementById('auth-error').style.borderColor = 'rgba(34, 197, 94, 0.3)';
+        document.getElementById('auth-error').style.color = '#22c55e';
+        document.getElementById('auth-error').classList.remove('hidden');
+      } catch (err) {
+        document.getElementById('auth-error').textContent = 'Error: ' + (err.message || 'Intenta de nuevo');
+        document.getElementById('auth-error').classList.remove('hidden');
+      }
+    });
 
     document.getElementById('btn-more-info').addEventListener('click', function() {
       var extra = document.getElementById('charger-extra');
