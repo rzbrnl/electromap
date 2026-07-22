@@ -61,9 +61,12 @@ const ChargerData = (() => {
     // Fetch CFE data if not cached
     if (!cfeData) {
       try {
-        const resp = await fetch('cfe-data.json');
+        console.log('Fetching CFE data...');
+        const resp = await fetch('/cfe-data.json');
+        console.log('CFE response status:', resp.status);
         if (resp.ok) {
           cfeData = await resp.json();
+          console.log('CFE chargers loaded:', cfeData.length);
         }
       } catch (e) {
         console.warn('CFE error:', e.message);
@@ -97,6 +100,7 @@ const ChargerData = (() => {
         numConnections: parseInt(c.electrolineras_totales) || 0
       }));
       chargers = chargers.concat(nearby);
+      console.log('After CFE merge, total:', chargers.length);
     }
 
     cache.set(cacheKey, { data: chargers, timestamp: Date.now() });
