@@ -2,7 +2,6 @@
 /* CFE Electrolineras Públicas México */
 
 var ChargerData = (function() {
-  var GOOGLE_MAPS_KEY = 'AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0';
   var cache = new Map();
   var lastFetch = null;
   var userLat = null;
