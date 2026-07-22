@@ -170,10 +170,11 @@ var ChargerMap = (function() {
       route.legs[0].steps.forEach(function(step, i) {
         if (!step.maneuver) return;
 
-        // Store step coordinates
-        var coord = step.maneuver.location;
-        if (coord) {
-          navStepCoords.push({ lat: coord[1], lng: coord[0] });
+        // Store step coordinates from maneuver location
+        if (step.maneuver.location && step.maneuver.location.length >= 2) {
+          navStepCoords.push({ lat: step.maneuver.location[1], lng: step.maneuver.location[0] });
+        } else {
+          navStepCoords.push(null);
         }
 
         var icon = '→';
@@ -190,6 +191,8 @@ var ChargerMap = (function() {
         stepsHtml += '<div class="nav-step' + (i === 0 ? ' active' : '') + '" id="nav-step-' + i + '"><div class="nav-step-icon">' + icon + '</div><div class="nav-step-info"><div class="nav-step-text">' + instruction + '</div><div class="nav-step-dist">' + stepDist + ' km</div></div></div>';
       });
     }
+
+    console.log('Nav step coords:', navStepCoords.length, 'steps');
 
     panel.innerHTML = '<div class="nav-header"><div class="nav-summary"><span class="nav-distance">' + distance + ' km</span><span class="nav-time">· ' + duration + ' min</span></div><button class="nav-close" onclick="ChargerMap.stopNavigation()">✕</button></div><div class="nav-steps">' + stepsHtml + '</div><div class="nav-actions"><button class="nav-start-btn" onclick="ChargerMap.startNavigation()">🔊 Iniciar navegación con voz</button><button class="nav-google-btn" onclick="ChargerMap.openNavigation()">Google Maps</button></div>';
   }
@@ -274,7 +277,21 @@ var ChargerMap = (function() {
 
   function updateNavStep(lat, lng) {
     var steps = document.querySelectorAll('.nav-step');
-    if (navCurrentStep >= steps.length - 1) return;
+    if (!steps.length) return;
+
+    // Check if we're near the destination (last step)
+    if (navCurrentStep >= navStepCoords.length - 1) {
+      var destCoord = navStepCoords[navStepCoords.length - 1];
+      if (destCoord) {
+        var distToDest = getDistance(lat, lng, destCoord.lat, destCoord.lng);
+        if (distToDest < 0.05) {
+          speak('Has llegado a tu destino.');
+          stopNavigation();
+          return;
+        }
+      }
+      return;
+    }
 
     // Get next step coordinates
     var nextCoord = navStepCoords[navCurrentStep + 1];
@@ -282,10 +299,12 @@ var ChargerMap = (function() {
 
     // Calculate distance to next step
     var distToNext = getDistance(lat, lng, nextCoord.lat, nextCoord.lng);
+    console.log('Step', navCurrentStep + 1, '- Dist to next:', distToNext.toFixed(3), 'km');
 
-    // If within 50 meters of next step, advance
-    if (distToNext < 0.05) {
+    // If within 100 meters of next step, advance
+    if (distToNext < 0.1) {
       navCurrentStep++;
+      console.log('Advanced to step', navCurrentStep);
 
       // Highlight current step
       steps.forEach(function(s) { s.classList.remove('active'); });
