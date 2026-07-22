@@ -93,7 +93,12 @@
 
   function onChargerSelect(charger) { showSidebar(charger); }
 
+  var currentCharger = null;
+  var userFavorites = [];
+  var selectedRating = 0;
+
   function showSidebar(charger) {
+    currentCharger = charger;
     document.getElementById('sidebar').classList.remove('hidden');
     document.getElementById('charger-name').textContent = charger.name;
     document.getElementById('charger-operator').textContent = charger.operator;
@@ -119,15 +124,7 @@
       return '<div class="connection-item"><div class="connection-type">' + conn.type + '</div><div class="connection-power">' + (conn.powerKW ? conn.powerKW + ' kW' : 'N/A') + '</div><div class="connection-level">' + conn.level + '</div></div>';
     }).join('');
 
-    var ps = document.getElementById('charger-photos');
-    var pg = document.getElementById('photos-grid');
-    if (charger.photos && charger.photos.length > 0) {
-      ps.style.display = 'block';
-      pg.innerHTML = charger.photos.map(function(url) { return '<img src="' + url + '" alt="Foto" loading="lazy" onerror="this.style.display=\'none\'">'; }).join('');
-    } else {
-      ps.style.display = 'none';
-    }
-
+    // Distance
     document.getElementById('charger-distance').textContent = 'Calculando...';
     document.getElementById('charger-duration').style.display = 'none';
 
@@ -144,19 +141,19 @@
           durEl.style.display = 'block';
           charger.drivingDistance = data.routes[0].distance / 1000;
           charger.drivingDuration = min + ' min';
-        } else {
-          distEl.textContent = 'N/A';
-        }
-      }).catch(function() {
-        distEl.textContent = 'N/A';
-      });
+        } else { distEl.textContent = 'N/A'; }
+      }).catch(function() { distEl.textContent = 'N/A'; });
     } else {
       document.getElementById('charger-distance').textContent = 'N/A';
     }
 
-    var nb = document.getElementById('btn-navigate');
-    nb.onclick = function(e) { e.preventDefault(); showRouteOnMap(charger); };
+    document.getElementById('btn-navigate').onclick = function(e) { e.preventDefault(); showRouteOnMap(charger); };
     document.getElementById('btn-share').onclick = function() { shareLocation(charger); };
+
+    // Community features
+    updateFavoriteButton(charger);
+    loadComments(charger);
+    loadCommunityPhotos(charger);
   }
 
   function showRouteOnMap(charger) {
@@ -301,13 +298,33 @@
       else { extra.style.display = 'none'; btn.innerHTML = '<svg class="icon" width="14" height="14"><use href="#icon-info"></use></svg> Más información'; }
     });
 
+    // Community features
+    document.getElementById('btn-favorite').addEventListener('click', toggleFavorite);
+    document.getElementById('btn-submit-comment').addEventListener('click', submitComment);
+    document.getElementById('btn-add-photo').addEventListener('click', function() { document.getElementById('photo-upload').click(); });
+    document.getElementById('photo-upload').addEventListener('change', handlePhotoUpload);
+    document.getElementById('btn-report').addEventListener('click', showReportModal);
+    document.getElementById('close-report').addEventListener('click', function() { document.getElementById('report-modal').classList.add('hidden'); });
+    document.getElementById('report-form').addEventListener('submit', submitReport);
+    document.getElementById('report-type').addEventListener('change', function() {
+      document.getElementById('new-station-fields').style.display = this.value === 'new_station' ? 'block' : 'none';
+    });
+
+    // Star rating
+    document.querySelectorAll('#star-rating .star').forEach(function(star) {
+      star.addEventListener('click', function() { updateStarRating(parseInt(this.dataset.value)); });
+    });
+
+    // Load favorites on init
+    loadUserFavorites();
+
     var moveTimeout;
     ChargerMap.onMapEvent('moveend', function() {
       clearTimeout(moveTimeout);
       moveTimeout = setTimeout(function() { loadChargers(); }, 500);
     });
 
-    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); hideAuthModal(); } });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); hideAuthModal(); document.getElementById('report-modal').classList.add('hidden'); } });
   }
 
   var isLoginMode = true;
@@ -330,26 +347,239 @@
     document.getElementById('auth-error').classList.add('hidden');
   }
 
+  // === FAVORITES ===
+  async function updateFavoriteButton(charger) {
+    var btn = document.getElementById('btn-favorite');
+    var text = document.getElementById('btn-favorite-text');
+    var user = await getCurrentUser();
+    if (!user) {
+      btn.classList.remove('active');
+      text.textContent = 'Guardar';
+      return;
+    }
+    var isFav = userFavorites.some(function(id) { return id === charger.id; });
+    btn.classList.toggle('active', isFav);
+    text.textContent = isFav ? 'Guardado' : 'Guardar';
+  }
+
+  async function toggleFavorite() {
+    var user = await getCurrentUser();
+    if (!user) { showToast('Inicia sesión para guardar favoritos'); return; }
+    if (!currentCharger) return;
+    var isFav = await SupabaseApp.toggleFavorite(user.id, currentCharger.id);
+    if (isFav) {
+      userFavorites.push(currentCharger.id);
+      showToast('Agregado a favoritos');
+    } else {
+      userFavorites = userFavorites.filter(function(id) { return id !== currentCharger.id; });
+      showToast('Eliminado de favoritos');
+    }
+    updateFavoriteButton(currentCharger);
+  }
+
+  async function loadUserFavorites() {
+    var user = await getCurrentUser();
+    if (!user) { userFavorites = []; return; }
+    userFavorites = await SupabaseApp.getFavorites(user.id);
+  }
+
+  // === COMMENTS ===
+  async function loadComments(charger) {
+    var comments = await SupabaseApp.getComments(charger.id);
+    var list = document.getElementById('comments-list');
+    var ratingEl = document.getElementById('charger-rating');
+
+    if (comments.length === 0) {
+      list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px 0;">No hay reseñas aún</div>';
+      ratingEl.textContent = '0 ★';
+      return;
+    }
+
+    var avg = await SupabaseApp.getAverageRating(charger.id);
+    ratingEl.textContent = avg + ' ★';
+
+    list.innerHTML = comments.map(function(c) {
+      var stars = c.rating ? '★'.repeat(c.rating) + '☆'.repeat(5 - c.rating) : '';
+      var date = c.created_at ? new Date(c.created_at).toLocaleDateString('es-MX') : '';
+      return '<div class="comment-item"><div class="comment-header"><span class="comment-author">' + (c.user_name || 'Anónimo') + '</span><span class="comment-stars">' + stars + '</span></div><div class="comment-text">' + (c.comment || '') + '</div><div class="comment-date">' + date + '</div></div>';
+    }).join('');
+  }
+
+  async function submitComment() {
+    var user = await getCurrentUser();
+    if (!user) { showToast('Inicia sesión para comentar'); return; }
+    if (!currentCharger) return;
+
+    var text = document.getElementById('comment-text').value.trim();
+    if (!text && !selectedRating) { showToast('Escribe un comentario o selecciona una calificación'); return; }
+
+    var userName = user.email ? user.email.split('@')[0] : 'Anónimo';
+    var result = await SupabaseApp.addComment(currentCharger.id, userName, selectedRating || null, text);
+    if (result) {
+      document.getElementById('comment-text').value = '';
+      selectedRating = 0;
+      updateStarRating(0);
+      loadComments(currentCharger);
+      showToast('Comentario enviado');
+    } else {
+      showToast('Error al enviar comentario');
+    }
+  }
+
+  function updateStarRating(rating) {
+    selectedRating = rating;
+    document.querySelectorAll('#star-rating .star').forEach(function(s) {
+      s.classList.toggle('active', parseInt(s.dataset.value) <= rating);
+    });
+  }
+
+  // === COMMUNITY PHOTOS ===
+  async function loadCommunityPhotos(charger) {
+    var photos = await SupabaseApp.getPhotos(charger.id);
+    var grid = document.getElementById('community-photos');
+    if (photos.length === 0) {
+      grid.innerHTML = '';
+      return;
+    }
+    grid.innerHTML = photos.map(function(p) {
+      return '<img src="' + p.url + '" alt="' + (p.caption || 'Foto') + '" loading="lazy" onerror="this.style.display=\'none\'">';
+    }).join('');
+  }
+
+  async function handlePhotoUpload(e) {
+    var user = await getCurrentUser();
+    if (!user) { showToast('Inicia sesión para subir fotos'); return; }
+    if (!currentCharger) return;
+
+    var file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { showToast('La imagen no puede superar 5MB'); return; }
+
+    showToast('Subiendo foto...');
+    var reader = new FileReader();
+    reader.onload = async function(ev) {
+      var dataUrl = ev.target.result;
+      var result = await SupabaseApp.addPhoto(currentCharger.id, dataUrl, '');
+      if (result) {
+        loadCommunityPhotos(currentCharger);
+        showToast('Foto agregada');
+      } else {
+        showToast('Error al subir foto');
+      }
+      e.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // === REPORTS ===
+  function showReportModal() {
+    var user = getCurrentUser();
+    if (!user) { showToast('Inicia sesión para reportar'); return; }
+    document.getElementById('report-modal').classList.remove('hidden');
+  }
+
+  async function submitReport(e) {
+    e.preventDefault();
+    var user = await getCurrentUser();
+    if (!user) { showToast('Inicia sesión para reportar'); return; }
+
+    var type = document.getElementById('report-type').value;
+    var description = document.getElementById('report-description').value.trim();
+    if (!description) { showToast('Describe el problema'); return; }
+
+    var data = {
+      chargerId: currentCharger ? currentCharger.id : null,
+      type: type,
+      description: description
+    };
+
+    if (type === 'new_station') {
+      data.newStationName = document.getElementById('report-station-name').value.trim();
+      data.newStationAddress = document.getElementById('report-station-address').value.trim();
+      data.newStationConnector = document.getElementById('report-station-connector').value.trim();
+      if (userLat) data.newStationLat = userLat;
+      if (userLng) data.newStationLng = userLng;
+    }
+
+    var result = await SupabaseApp.addReport(data);
+    if (result) {
+      document.getElementById('report-modal').classList.add('hidden');
+      document.getElementById('report-form').reset();
+      showToast('Reporte enviado. Gracias.');
+    } else {
+      showToast('Error al enviar reporte');
+    }
+  }
+
+  // === HELPER: get current user ===
+  async function getCurrentUser() {
+    try {
+      var result = await SupabaseApp.getUser();
+      if (result && result.data && result.data.user && result.data.user.id) {
+        return result.data.user;
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  // === PROFILE MODAL ===
   function showProfileModal(user) {
     if (!user) return;
     var modal = document.getElementById('auth-modal');
     var title = document.getElementById('auth-title');
     var form = document.getElementById('auth-form');
+    var initial = user.email ? user.email[0].toUpperCase() : 'U';
 
     title.textContent = 'Mi perfil';
-    form.innerHTML = '<div style="text-align:center;padding:10px 0;"><div style="width:64px;height:64px;border-radius:50%;background:var(--accent);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:24px;color:white;">' + (user.email ? user.email[0].toUpperCase() : 'U') + '</div><div style="color:var(--text);font-size:16px;font-weight:600;margin-bottom:4px;">' + (user.email || 'Usuario') + '</div><div style="color:var(--text-muted);font-size:13px;">Miembro de ElectroMap</div></div><button class="btn-primary" id="btn-logout" style="background:var(--danger);margin-top:16px;">Cerrar sesión</button>';
+    form.innerHTML =
+      '<div class="profile-avatar-upload" id="avatar-upload-area">' +
+        '<div class="avatar-circle" id="profile-avatar">' + initial + '</div>' +
+        '<div class="avatar-overlay"><svg class="icon" width="12" height="12"><use href="#icon-camera"></use></svg></div>' +
+        '<input type="file" id="avatar-file-input" accept="image/*" style="display:none;">' +
+      '</div>' +
+      '<div style="text-align:center;">' +
+        '<div style="color:var(--text);font-size:16px;font-weight:600;margin-bottom:4px;">' + (user.email || 'Usuario') + '</div>' +
+        '<div style="color:var(--text-muted);font-size:13px;">Miembro de ElectroMap</div>' +
+      '</div>' +
+      '<div class="profile-section">' +
+        '<div class="profile-section-title">Estadísticas</div>' +
+        '<div class="profile-stat-row"><span class="profile-stat-label">Favoritos</span><span class="profile-stat-value" id="profile-fav-count">0</span></div>' +
+        '<div class="profile-stat-row"><span class="profile-stat-label">Reseñas</span><span class="profile-stat-value" id="profile-comment-count">0</span></div>' +
+      '</div>' +
+      '<button class="btn-primary" id="btn-logout" style="background:var(--danger);margin-top:16px;width:100%;">Cerrar sesión</button>';
     modal.classList.remove('hidden');
 
+    // Load profile data
+    SupabaseApp.getFavorites(user.id).then(function(favs) {
+      var el = document.getElementById('profile-fav-count');
+      if (el) el.textContent = favs.length;
+    });
+
+    // Avatar upload
+    document.getElementById('avatar-upload-area').addEventListener('click', function() {
+      document.getElementById('avatar-file-input').click();
+    });
+
+    document.getElementById('avatar-file-input').addEventListener('change', async function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { showToast('La imagen no puede superar 2MB'); return; }
+
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        var avatarEl = document.getElementById('profile-avatar');
+        avatarEl.innerHTML = '<img src="' + ev.target.result + '" alt="Avatar">';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Logout
     document.getElementById('btn-logout').addEventListener('click', async function() {
       await SupabaseApp.signOut();
       modal.classList.add('hidden');
       showToast('Sesión cerrada');
       setTimeout(function() { window.location.reload(); }, 1000);
     });
-  }
-
-  function updateUserUI() {
-    console.log('User UI updated');
   }
 
   function toggleAuthMode() {
@@ -376,6 +606,7 @@
         if (loginResult && loginResult.user) {
           hideAuthModal();
           showToast('Sesión iniciada correctamente');
+          loadUserFavorites();
         } else {
           errorEl.textContent = 'Error al iniciar sesión. Verifica tus credenciales.';
           errorEl.classList.remove('hidden');

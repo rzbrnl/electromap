@@ -25,7 +25,7 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
     />
-    <link rel="stylesheet" href="css/style.css?v=em30" />
+    <link rel="stylesheet" href="css/style.css?v=em38" />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'><path d='M7 2v11h3v9l7-12h-4l4-8z'/></svg>"
@@ -188,6 +188,29 @@
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="12" y1="16" x2="12" y2="12"></line>
         <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </symbol>
+      <symbol
+        id="icon-heart"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+      </symbol>
+      <symbol
+        id="icon-camera"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+        <circle cx="12" cy="13" r="4"></circle>
       </symbol>
       <symbol
         id="icon-live"
@@ -380,10 +403,51 @@
           <svg class="icon" width="16" height="16"><use href="#icon-navigation"></use></svg>
           Cómo llegar
         </button>
-        <button class="share-btn" id="btn-share">
-          <svg class="icon" width="16" height="16"><use href="#icon-location"></use></svg>
-          Compartir ubicación
-        </button>
+        <div class="sidebar-actions-row">
+          <button class="action-btn" id="btn-favorite">
+            <svg class="icon" width="16" height="16"><use href="#icon-heart"></use></svg>
+            <span id="btn-favorite-text">Guardar</span>
+          </button>
+          <button class="action-btn" id="btn-share">
+            <svg class="icon" width="16" height="16"><use href="#icon-location"></use></svg>
+            Compartir
+          </button>
+          <button class="action-btn" id="btn-report">
+            <svg class="icon" width="16" height="16"><use href="#icon-info"></use></svg>
+            Reportar
+          </button>
+        </div>
+
+        <div id="community-section" style="margin-top:16px;">
+          <div class="section-divider"></div>
+
+          <div class="community-header">
+            <span>Reseñas</span>
+            <span class="community-rating" id="charger-rating">0 ★</span>
+          </div>
+          <div id="comments-list" class="comments-list"></div>
+
+          <div class="add-comment-box" id="add-comment-box">
+            <div class="star-rating" id="star-rating">
+              <span class="star" data-value="1">★</span>
+              <span class="star" data-value="2">★</span>
+              <span class="star" data-value="3">★</span>
+              <span class="star" data-value="4">★</span>
+              <span class="star" data-value="5">★</span>
+            </div>
+            <textarea id="comment-text" placeholder="Escribe un comentario..." rows="2"></textarea>
+            <button class="btn-primary btn-sm" id="btn-submit-comment">Enviar</button>
+          </div>
+
+          <div class="section-divider"></div>
+          <div class="community-header"><span>Fotos de la comunidad</span></div>
+          <div id="community-photos" class="photos-grid"></div>
+          <button class="action-btn" id="btn-add-photo" style="width:100%;margin-top:8px;">
+            <svg class="icon" width="14" height="14"><use href="#icon-info"></use></svg>
+            Agregar foto
+          </button>
+          <input type="file" id="photo-upload" accept="image/*" style="display:none;">
+        </div>
       </div>
     </aside>
 
@@ -513,7 +577,7 @@
           </div>
           <div class="form-group">
             <label for="auth-password">Contraseña</label>
-            <input type="password" id="auth-password" placeholder="••••••••" required />
+            <input type="password" id="auth-password" placeholder="••••••••" required autocomplete="current-password" />
           </div>
           <button type="submit" class="btn-primary" id="auth-submit">Iniciar sesión</button>
           <p class="auth-toggle">
@@ -527,12 +591,53 @@
       </div>
     </div>
 
+    <!-- Report Modal -->
+    <div id="report-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Reportar problema</h3>
+          <button class="close-btn" id="close-report">
+            <svg class="icon" width="14" height="14"><use href="#icon-close"></use></svg>
+          </button>
+        </div>
+        <form id="report-form">
+          <div class="form-group">
+            <label>Tipo de reporte</label>
+            <select id="report-type">
+              <option value="damaged">Cargador dañado</option>
+              <option value="incorrect_info">Información incorrecta</option>
+              <option value="new_station">Nueva estación</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Descripción</label>
+            <textarea id="report-description" placeholder="Describe el problema..." rows="3"></textarea>
+          </div>
+          <div id="new-station-fields" style="display:none;">
+            <div class="form-group">
+              <label>Nombre de la estación</label>
+              <input type="text" id="report-station-name" placeholder="Nombre" />
+            </div>
+            <div class="form-group">
+              <label>Dirección</label>
+              <input type="text" id="report-station-address" placeholder="Dirección" />
+            </div>
+            <div class="form-group">
+              <label>Conectores disponibles</label>
+              <input type="text" id="report-station-connector" placeholder="Ej: CCS2, CHAdeMO" />
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">Enviar reporte</button>
+        </form>
+      </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="assets/data.js?v=em37"></script>
-    <script src="assets/supabase.js?v=em37"></script>
-    <script src="assets/map.js?v=em37"></script>
-    <script src="assets/main.js?v=em37"></script>
+    <script src="assets/data.js?v=em38"></script>
+    <script src="assets/supabase.js?v=em38"></script>
+    <script src="assets/map.js?v=em38"></script>
+    <script src="assets/main.js?v=em38"></script>
   </body>
 </html>
