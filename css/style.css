@@ -1292,6 +1292,19 @@ body {
 .nav-google-btn {
   margin: 0;
   flex: 1;
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.nav-google-btn:hover {
+  background: var(--surface-hover);
 }
 
 @keyframes toastIn {

@@ -194,7 +194,7 @@ var ChargerMap = (function() {
 
     console.log('Nav step coords:', navStepCoords.length, 'steps');
 
-    panel.innerHTML = '<div class="nav-header"><div class="nav-summary"><span class="nav-distance">' + distance + ' km</span><span class="nav-time">· ' + duration + ' min</span></div><button class="nav-close" onclick="ChargerMap.stopNavigation()">✕</button></div><div class="nav-steps">' + stepsHtml + '</div><div class="nav-actions"><button class="nav-start-btn" onclick="ChargerMap.startNavigation()">🔊 Iniciar navegación con voz</button><button class="nav-google-btn" onclick="ChargerMap.openNavigation()">Google Maps</button></div>';
+    panel.innerHTML = '<div class="nav-header"><div class="nav-summary"><span class="nav-distance">' + distance + ' km</span><span class="nav-time">· ' + duration + ' min</span></div><button class="nav-close" onclick="ChargerMap.closeNavigation()">✕</button></div><div class="nav-steps">' + stepsHtml + '</div><div class="nav-actions"><button class="nav-start-btn" onclick="ChargerMap.startNavigation()">🔊 Iniciar navegación con voz</button><button class="nav-google-btn" onclick="ChargerMap.openNavigation()">Google Maps</button></div>';
   }
 
   // Voice navigation
