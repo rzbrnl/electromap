@@ -19,5 +19,5 @@ npm-debug.log*
 .env
 .env.local
 
-# Config (contains API keys)
-config.js
+# Config (contains API keys) - root only, NOT api/
+/config.js
