@@ -64,15 +64,26 @@
       ChargerData.setUserLocation(pos.lat, pos.lng);
       userLat = pos.lat;
       userLng = pos.lng;
+      console.log('Location found:', pos.lat, pos.lng);
     } catch (error) {
-      console.log('Location not available, using default');
+      console.log('Location not available:', error.message);
     }
+
     try {
-      await loadChargers();
+      const center = ChargerMap.getCenter();
+      const radius = ChargerMap.getRadius();
+      console.log('Fetching chargers for:', center.lat, center.lng, 'radius:', radius);
+      allChargers = await ChargerData.fetchChargers(center.lat, center.lng, radius, 100);
+      console.log('Chargers loaded:', allChargers.length);
+      applyFilters();
+      updateStatus('En vivo');
     } catch (error) {
       console.error('Error loading chargers:', error);
+      updateStatus('Error de conexión', true);
     }
+
     showLoading(false);
+    console.log('Loading hidden');
   }
 
   async function loadChargers() {
@@ -85,8 +96,8 @@
       applyFilters();
       updateStatus('En vivo');
     } catch (error) {
-      console.error('Failed to load chargers:', error);
-      updateStatus('Error de conexión', true);
+      console.error('Error in loadChargers:', error);
+      updateStatus('Error', true);
     }
   }
 
