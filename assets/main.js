@@ -344,6 +344,7 @@
       await SupabaseApp.signOut();
       modal.classList.add('hidden');
       showToast('Sesión cerrada');
+      setTimeout(function() { window.location.reload(); }, 1000);
     });
   }
 
@@ -372,17 +373,16 @@
     try {
       if (isLoginMode) {
         var loginResult = await SupabaseApp.signIn(email, password);
-        if (loginResult) {
+        if (loginResult && loginResult.user) {
           hideAuthModal();
           showToast('Sesión iniciada correctamente');
-          updateUserUI();
         } else {
           errorEl.textContent = 'Error al iniciar sesión. Verifica tus credenciales.';
           errorEl.classList.remove('hidden');
         }
       } else {
         var signupResult = await SupabaseApp.signUp(email, password);
-        if (signupResult) {
+        if (signupResult && signupResult.user) {
           hideAuthModal();
           showToast('Cuenta creada. Revisa tu correo para confirmar.');
         } else {
