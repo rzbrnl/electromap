@@ -127,8 +127,31 @@
       ps.style.display = 'none';
     }
 
-    document.getElementById('charger-distance').textContent = 'N/A';
+    document.getElementById('charger-distance').textContent = 'Calculando...';
     document.getElementById('charger-duration').style.display = 'none';
+
+    if (userLat && userLng && charger.lat && charger.lng) {
+      var distEl = document.getElementById('charger-distance');
+      var durEl = document.getElementById('charger-duration');
+      var url = 'https://router.project-osrm.org/route/v1/driving/' + userLng + ',' + userLat + ';' + charger.lng + ',' + charger.lat + '?overview=false';
+      fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.code === 'Ok' && data.routes[0]) {
+          var km = (data.routes[0].distance / 1000).toFixed(1);
+          var min = Math.round(data.routes[0].duration / 60);
+          distEl.textContent = km + ' km';
+          durEl.textContent = min + ' min en auto';
+          durEl.style.display = 'block';
+          charger.drivingDistance = data.routes[0].distance / 1000;
+          charger.drivingDuration = min + ' min';
+        } else {
+          distEl.textContent = 'N/A';
+        }
+      }).catch(function() {
+        distEl.textContent = 'N/A';
+      });
+    } else {
+      document.getElementById('charger-distance').textContent = 'N/A';
+    }
 
     var nb = document.getElementById('btn-navigate');
     nb.onclick = function(e) { e.preventDefault(); showRouteOnMap(charger); };
