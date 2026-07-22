@@ -4,11 +4,12 @@
 const ChargerData = (() => {
   const API_KEY = '3d44a410-854e-4da9-b309-2c8e2b29b0f9';
   const API_BASE = 'https://api.openchargemap.io/v3/poi/';
-  const GOOGLE_MAPS_KEY = 'AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0';
+  const CFE_URL = 'https://repodatos.atdt.gob.mx/api_update/cfe/electrolineras_publicas_en_mexico/cfe_dseec_paese_electrolineras_2026.csv';
   let cache = new Map();
   let lastFetch = null;
   let userLat = null;
   let userLng = null;
+  let cfeData = null;
 
   function setUserLocation(lat, lng) {
     userLat = lat;
@@ -33,47 +34,75 @@ const ChargerData = (() => {
       }
     }
 
-    const params = new URLSearchParams({
-      output: 'json',
-      latitude: lat,
-      longitude: lng,
-      distance: radius,
-      distanceunit: 'km',
-      maxresults: maxResults,
-      compact: 'true',
-      verbose: 'false',
-      key: API_KEY
-    });
+    let chargers = [];
 
+    // Try Open Charge Map first
     try {
-      const url = `${API_BASE}?${params.toString()}`;
-      console.log('Fetching:', url);
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('API response:', response.status, text);
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('API returned', data.length, 'chargers');
-
-      const chargers = parseChargers(data);
-      console.log('Parsed', chargers.length, 'chargers');
-
-      cache.set(cacheKey, {
-        data: chargers,
-        timestamp: Date.now()
+      const params = new URLSearchParams({
+        output: 'json',
+        latitude: lat,
+        longitude: lng,
+        distance: radius,
+        distanceunit: 'km',
+        maxresults: maxResults,
+        compact: 'true',
+        verbose: 'false',
+        key: API_KEY
       });
-
-      lastFetch = new Date();
-      return chargers;
-    } catch (error) {
-      console.error('Error fetching chargers:', error);
-      throw error;
+      const response = await fetch(`${API_BASE}?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        chargers = parseChargers(data);
+      }
+    } catch (e) {
+      console.warn('OCM error:', e.message);
     }
+
+    // Fetch CFE data if not cached
+    if (!cfeData) {
+      try {
+        const resp = await fetch(CFE_URL);
+        if (resp.ok) {
+          const text = await resp.text();
+          cfeData = parseCSV(text);
+        }
+      } catch (e) {
+        console.warn('CFE error:', e.message);
+      }
+    }
+
+    // Add CFE chargers near location
+    if (cfeData) {
+      const nearby = cfeData.filter(c => {
+        if (!c.lat || !c.lng) return false;
+        const dist = calculateDistance(lat, lng, c.lat, c.lng);
+        return dist <= radius;
+      }).map(c => ({
+        id: 'cfe-' + c.cons,
+        name: c.nombre_estacion,
+        address: c.direccion + ', ' + c.ciudad + ', ' + c.estado,
+        lat: c.lat,
+        lng: c.lng,
+        country: 'México',
+        distance: calculateDistance(lat, lng, c.lat, c.lng),
+        distanceUnit: 2,
+        operator: 'CFE',
+        network: 'CFE',
+        status: 'Operational',
+        statusId: 50,
+        usage: 'Público',
+        cost: 'Gratis',
+        numberOfPoints: parseInt(c.electrolineras_totales) || 0,
+        photos: [],
+        connections: [{ type: c.tipo_01 || 'N/A', typeId: 0, powerKW: parseFloat(c.potencia_01) || 0, level: 'Level 2', levelId: 2 }],
+        numConnections: parseInt(c.electrolineras_totales) || 0
+      }));
+      chargers = chargers.concat(nearby);
+    }
+
+    cache.set(cacheKey, { data: chargers, timestamp: Date.now() });
+    lastFetch = new Date();
+    return chargers;
   }
 
   const STATUS_MAP = {
@@ -186,42 +215,37 @@ const ChargerData = (() => {
     return R * c;
   }
 
-  async function fetchDrivingDistances(chargers) {
-    const BATCH_SIZE = 25;
-    const chargersWithCoords = chargers.filter(c => c.lat && c.lng);
-
-    for (let i = 0; i < chargersWithCoords.length; i += BATCH_SIZE) {
-      const batch = chargersWithCoords.slice(i, i + BATCH_SIZE);
-      const destinations = batch.map(c => `${c.lat},${c.lng}`).join('|');
-
-      if (!destinations) continue;
-
-      const origin = `${userLat},${userLng}`;
-      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destinations}&key=${GOOGLE_MAPS_KEY}&units=metric&language=es`;
-
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-        console.log('Google Maps response:', data.status);
-
-        if (data.status !== 'OK') {
-          console.warn('Google Maps API error:', data);
-          continue;
-        }
-
-        const elements = data.rows[0]?.elements || [];
-
-        for (let j = 0; j < batch.length; j++) {
-          const element = elements[j];
-          if (element && element.status === 'OK') {
-            batch[j].drivingDistance = element.distance.value / 1000;
-            batch[j].drivingDuration = element.duration.text;
-          }
-        }
-      } catch (error) {
-        console.warn('Google Maps fetch error:', error);
+  function parseCSV(text) {
+    const lines = text.split('\n').slice(1);
+    return lines.filter(l => l.trim()).map(line => {
+      const parts = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQuotes = !inQuotes; }
+        else if (ch === ',' && !inQuotes) { parts.push(current.trim()); current = ''; }
+        else { current += ch; }
       }
-    }
+      parts.push(current.trim());
+      return {
+        cons: parts[0],
+        nombre_estacion: parts[2] || '',
+        direccion: parts[3] || '',
+        ciudad: parts[5] || '',
+        estado: parts[6] || '',
+        lat: parseFloat(parts[8]) || 0,
+        lng: parseFloat(parts[9]) || 0,
+        electrolineras_totales: parts[10] || '0',
+        tipo_01: parts[12] || '',
+        potencia_01: parts[13] || ''
+      };
+    }).filter(c => c.lat && c.lng);
+  }
+
+  async function fetchDrivingDistances(chargers) {
+    // Google Maps Distance Matrix has CORS issues, skip for now
+    return chargers;
   }
 
   function formatAddress(info) {
