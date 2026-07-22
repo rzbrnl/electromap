@@ -332,7 +332,19 @@
 
   function showProfileModal(user) {
     if (!user) return;
-    alert('Bienvenido, ' + (user.email || 'Usuario'));
+    var modal = document.getElementById('auth-modal');
+    var title = document.getElementById('auth-title');
+    var form = document.getElementById('auth-form');
+
+    title.textContent = 'Mi perfil';
+    form.innerHTML = '<div style="text-align:center;padding:10px 0;"><div style="width:64px;height:64px;border-radius:50%;background:var(--accent);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:24px;color:white;">' + (user.email ? user.email[0].toUpperCase() : 'U') + '</div><div style="color:var(--text);font-size:16px;font-weight:600;margin-bottom:4px;">' + (user.email || 'Usuario') + '</div><div style="color:var(--text-muted);font-size:13px;">Miembro de ElectroMap</div></div><button class="btn-primary" id="btn-logout" style="background:var(--danger);margin-top:16px;">Cerrar sesión</button>';
+    modal.classList.remove('hidden');
+
+    document.getElementById('btn-logout').addEventListener('click', async function() {
+      await SupabaseApp.signOut();
+      modal.classList.add('hidden');
+      showToast('Sesión cerrada');
+    });
   }
 
   function updateUserUI() {
