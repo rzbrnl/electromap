@@ -577,10 +577,22 @@
 
       var reader = new FileReader();
       reader.onload = function(ev) {
-        pendingAvatarData = ev.target.result;
-        var avatarEl = document.getElementById('profile-avatar');
-        avatarEl.innerHTML = '<img src="' + ev.target.result + '" alt="Avatar">';
-        document.getElementById('btn-save-avatar').style.display = 'block';
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var maxSize = 200;
+          var w = img.width, h = img.height;
+          if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize; } }
+          else { if (h > maxSize) { w = w * maxSize / h; h = maxSize; } }
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          pendingAvatarData = canvas.toDataURL('image/jpeg', 0.7);
+          var avatarEl = document.getElementById('profile-avatar');
+          avatarEl.innerHTML = '<img src="' + pendingAvatarData + '" alt="Avatar">';
+          document.getElementById('btn-save-avatar').style.display = 'block';
+        };
+        img.src = ev.target.result;
       };
       reader.readAsDataURL(file);
     });
@@ -593,12 +605,21 @@
       btn.disabled = true;
       try {
         var client = SupabaseApp.getClient();
-        if (client) {
-          await client.from('user_profiles').upsert({ id: user.id, avatar_url: pendingAvatarData }, { onConflict: 'id' });
+        if (!client) { showToast('Error: Sin conexión'); btn.disabled = false; return; }
+        var user2 = await getCurrentUser();
+        if (!user2) { showToast('Error: Sin sesión'); btn.disabled = false; return; }
+        var { error } = await client.from('user_profiles')
+          .update({ avatar_url: pendingAvatarData })
+          .eq('id', user2.id);
+        if (error) {
+          console.error('Avatar save error:', error);
+          showToast('Error: ' + error.message);
+        } else {
           showToast('Foto de perfil guardada');
           btn.style.display = 'none';
         }
       } catch (err) {
+        console.error('Avatar save exception:', err);
         showToast('Error al guardar foto');
       }
       btn.disabled = false;
