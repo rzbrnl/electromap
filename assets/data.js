@@ -5,8 +5,6 @@ const ChargerData = (() => {
   const API_KEY = '3d44a410-854e-4da9-b309-2c8e2b29b0f9';
   const API_BASE = 'https://api.openchargemap.io/v3/poi/';
   const GOOGLE_MAPS_KEY = 'AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0';
-  const CFE_ORIGINAL = 'https://repodatos.atdt.gob.mx/api_update/cfe/electrolineras_publicas_en_mexico/cfe_dseec_paese_electrolineras_2026.csv';
-  const CFE_PROXY = 'https://corsproxy.io/?' + encodeURIComponent(CFE_ORIGINAL);
   let cache = new Map();
   let lastFetch = null;
   let userLat = null;
@@ -63,10 +61,9 @@ const ChargerData = (() => {
     // Fetch CFE data if not cached
     if (!cfeData) {
       try {
-        const resp = await fetch(CFE_PROXY);
+        const resp = await fetch('cfe-data.json');
         if (resp.ok) {
-          const text = await resp.text();
-          cfeData = parseCSV(text);
+          cfeData = await resp.json();
         }
       } catch (e) {
         console.warn('CFE error:', e.message);
