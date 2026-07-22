@@ -1139,6 +1139,125 @@ body {
   background: var(--accent-hover);
 }
 
+/* Navigation Panel */
+.navigation-panel {
+  position: fixed;
+  bottom: 50px;
+  left: 16px;
+  right: 16px;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 950;
+  max-height: 50vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.nav-distance {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.nav-time {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.nav-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--surface-hover);
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.nav-close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.nav-steps {
+  overflow-y: auto;
+  padding: 8px;
+  flex: 1;
+}
+
+.nav-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.nav-step.active {
+  background: var(--accent-light);
+}
+
+.nav-step-icon {
+  font-size: 18px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-step-info {
+  flex: 1;
+}
+
+.nav-step-text {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.nav-step-dist {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.nav-google-btn {
+  margin: 8px 12px 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.nav-google-btn:hover {
+  background: var(--surface-hover);
+}
+
 @keyframes toastIn {
   from { opacity: 0; transform: translateX(-50%) translateY(20px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }

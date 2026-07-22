@@ -257,34 +257,101 @@ const ChargerMap = (() => {
     const bounds = L.latLngBounds([[originLat, originLng], [destLat, destLng]]);
     map.fitBounds(bounds, { padding: [80, 80] });
 
-    fetch(`https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson`)
+    fetch(`https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson&steps=true`)
       .then(r => r.json())
       .then(data => {
         if (data.code === 'Ok') {
-          const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+          const route = data.routes[0];
+          const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
           currentRoute = L.polyline(coords, {
             color: '#3b82f6',
             weight: 5,
-            opacity: 0.8,
-            dashArray: null
+            opacity: 0.8
           }).addTo(map);
 
-          const distance = (data.routes[0].distance / 1000).toFixed(1);
-          const duration = Math.round(data.routes[0].duration / 60);
+          const distance = (route.distance / 1000).toFixed(1);
+          const duration = Math.round(route.duration / 60);
 
-          if (typeof window.showToast === 'function') {
-            window.showToast(`Ruta: ${distance} km · ${duration} min`, true);
-          }
+          showNavigationPanel(route, distance, duration);
         }
       })
       .catch(err => console.error('Route error:', err));
   }
 
-  function openNavigation() {
-    if (routeDestination) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${routeDestination.lat},${routeDestination.lng}&travelmode=driving`;
-      window.open(url, '_blank');
+  function showNavigationPanel(route, distance, duration) {
+    let panel = document.getElementById('navigation-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'navigation-panel';
+      panel.className = 'navigation-panel';
+      document.getElementById('map').appendChild(panel);
     }
+
+    let stepsHtml = '';
+    if (route.legs && route.legs[0] && route.legs[0].steps) {
+      route.legs[0].steps.forEach((step, i) => {
+        if (step.maneuver) {
+          let icon = '→';
+          let instruction = '';
+
+          if (step.maneuver.type === 'arrive') {
+            icon = '📍';
+            instruction = 'Llegaste a tu destino';
+          } else if (step.maneuver.type === 'depart') {
+            icon = '🚗';
+            instruction = step.name ? `Sal por ${step.name}` : 'Comienza a conducir';
+          } else if (step.maneuver.type === 'turn') {
+            icon = step.maneuver.modifier === 'right' ? '➡️' : '⬅️';
+            instruction = step.maneuver.modifier === 'right' ? 'Gira a la derecha' : 'Gira a la izquierda';
+            if (step.name) instruction += ` en ${step.name}`;
+          } else if (step.maneuver.type === 'new name' || step.maneuver.type === 'continue') {
+            icon = '↑';
+            instruction = step.name ? `Sigue por ${step.name}` : 'Continúa recto';
+          } else if (step.maneuver.type === 'roundabout') {
+            icon = '🔄';
+            instruction = `En la rotonda, toma la salida ${step.maneuver.exit || ''}`;
+          } else {
+            instruction = step.name || 'Continúa';
+          }
+
+          const stepDist = (step.distance / 1000).toFixed(1);
+          stepsHtml += `
+            <div class="nav-step ${i === 0 ? 'active' : ''}">
+              <div class="nav-step-icon">${icon}</div>
+              <div class="nav-step-info">
+                <div class="nav-step-text">${instruction}</div>
+                <div class="nav-step-dist">${stepDist} km</div>
+              </div>
+            </div>`;
+        }
+      });
+    }
+
+    panel.innerHTML = `
+      <div class="nav-header">
+        <div class="nav-summary">
+          <span class="nav-distance">${distance} km</span>
+          <span class="nav-time">· ${duration} min</span>
+        </div>
+        <button class="nav-close" onclick="ChargerMap.closeNavigation()">✕</button>
+      </div>
+      <div class="nav-steps">${stepsHtml}</div>
+      <button class="nav-google-btn" onclick="ChargerMap.openNavigation()">
+        Abrir en Google Maps
+      </button>
+    `;
+  }
+
+  function closeNavigation() {
+    const panel = document.getElementById('navigation-panel');
+    if (panel) panel.remove();
+    if (currentRoute) {
+      map.removeLayer(currentRoute);
+      currentRoute = null;
+    }
+    routeMarkers.forEach(m => map.removeLayer(m));
+    routeMarkers = [];
+    routeDestination = null;
   }
 
   function removeRouteLayer(layer) {
@@ -306,6 +373,7 @@ const ChargerMap = (() => {
     onMapEvent,
     showRoute,
     openNavigation,
+    closeNavigation,
     removeRouteLayer
   };
 })();

@@ -172,8 +172,7 @@
       document.getElementById('charger-duration').style.display = charger.drivingDuration ? 'block' : 'none';
     } else if (charger.distance) {
       document.getElementById('charger-distance').textContent = `${charger.distance.toFixed(1)} km`;
-      document.getElementById('charger-duration').textContent = 'en línea recta';
-      document.getElementById('charger-duration').style.display = 'block';
+      document.getElementById('charger-duration').style.display = 'none';
     } else {
       document.getElementById('charger-distance').textContent = 'N/A';
       document.getElementById('charger-duration').style.display = 'none';
@@ -229,8 +228,6 @@
     }
   }
 
-  let directionsMap = null;
-  let routeControl = null;
   let routeLayer = null;
   let currentCharger = null;
 
