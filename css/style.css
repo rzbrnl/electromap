@@ -1283,10 +1283,19 @@ body {
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
+  transition: background 0.2s;
 }
 
 .nav-start-btn:hover {
   background: var(--accent-hover);
+}
+
+.nav-start-btn.stop {
+  background: var(--danger);
+}
+
+.nav-start-btn.stop:hover {
+  background: #dc2626;
 }
 
 .nav-google-btn {

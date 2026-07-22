@@ -267,9 +267,11 @@ var ChargerMap = (function() {
     if (btn) {
       if (active) {
         btn.textContent = '⏹ Detener navegación';
-        btn.onclick = stopNavigation;
+        btn.className = 'nav-start-btn stop';
+        btn.onclick = function() { closeNavigation(); };
       } else {
         btn.textContent = '🔊 Iniciar navegación con voz';
+        btn.className = 'nav-start-btn';
         btn.onclick = startNavigation;
       }
     }
