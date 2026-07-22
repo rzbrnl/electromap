@@ -259,9 +259,18 @@
     document.getElementById('btn-location').addEventListener('click', goToMyLocation);
     document.getElementById('btn-filters').addEventListener('click', toggleFilters);
     document.getElementById('btn-legend').addEventListener('click', toggleLegend);
+    document.getElementById('btn-user').addEventListener('click', toggleAuthModal);
     document.getElementById('close-sidebar').addEventListener('click', hideSidebar);
     document.getElementById('close-filters').addEventListener('click', hideFilters);
+    document.getElementById('close-auth').addEventListener('click', hideAuthModal);
     document.getElementById('btn-apply-filters').addEventListener('click', function() { applyFilters(); hideFilters(); });
+
+    document.getElementById('auth-form').addEventListener('submit', handleAuth);
+    document.getElementById('toggle-auth').addEventListener('click', function(e) {
+      e.preventDefault();
+      toggleAuthMode();
+    });
+
     document.getElementById('btn-more-info').addEventListener('click', function() {
       var extra = document.getElementById('charger-extra');
       var btn = document.getElementById('btn-more-info');
@@ -275,7 +284,66 @@
       moveTimeout = setTimeout(function() { loadChargers(); }, 500);
     });
 
-    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); } });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); hideAuthModal(); } });
+  }
+
+  var isLoginMode = true;
+
+  function toggleAuthModal() {
+    var modal = document.getElementById('auth-modal');
+    modal.classList.toggle('hidden');
+  }
+
+  function hideAuthModal() {
+    document.getElementById('auth-modal').classList.add('hidden');
+    document.getElementById('auth-error').classList.add('hidden');
+  }
+
+  function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
+    document.getElementById('auth-title').textContent = isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta';
+    document.getElementById('auth-submit').textContent = isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta';
+    document.getElementById('toggle-auth').textContent = isLoginMode ? 'Regístrate' : 'Inicia sesión';
+  }
+
+  async function handleAuth(e) {
+    e.preventDefault();
+    var email = document.getElementById('auth-email').value;
+    var password = document.getElementById('auth-password').value;
+    var errorEl = document.getElementById('auth-error');
+    var submitBtn = document.getElementById('auth-submit');
+
+    errorEl.classList.add('hidden');
+    submitBtn.textContent = 'Cargando...';
+    submitBtn.disabled = true;
+
+    try {
+      if (isLoginMode) {
+        var result = await SupabaseApp.signIn(email, password);
+        if (result) {
+          hideAuthModal();
+          showToast('Sesión iniciada correctamente');
+        } else {
+          errorEl.textContent = 'Error al iniciar sesión. Verifica tus credenciales.';
+          errorEl.classList.remove('hidden');
+        }
+      } else {
+        var result = await SupabaseApp.signUp(email, password);
+        if (result) {
+          hideAuthModal();
+          showToast('Cuenta creada. Revisa tu correo para confirmar.');
+        } else {
+          errorEl.textContent = 'Error al crear cuenta.';
+          errorEl.classList.remove('hidden');
+        }
+      }
+    } catch (err) {
+      errorEl.textContent = err.message || 'Error desconocido';
+      errorEl.classList.remove('hidden');
+    }
+
+    submitBtn.textContent = isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta';
+    submitBtn.disabled = false;
   }
 
   document.addEventListener('DOMContentLoaded', init);
