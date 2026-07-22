@@ -250,7 +250,7 @@
     }
   }
 
-  function showToast(message, showNavButton = false) {
+  window.showToast = function(message, showNavButton = false) {
     const existing = document.querySelector('.toast');
     if (existing) existing.remove();
 
@@ -263,6 +263,10 @@
     document.body.appendChild(toast);
 
     setTimeout(() => toast.remove(), 5000);
+  };
+
+  function showToast(message, showNavButton = false) {
+    window.showToast(message, showNavButton);
   }
 
   function hideSidebar() {

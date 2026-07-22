@@ -272,8 +272,8 @@ const ChargerMap = (() => {
           const distance = (data.routes[0].distance / 1000).toFixed(1);
           const duration = Math.round(data.routes[0].duration / 60);
 
-          if (typeof showToast === 'function') {
-            showToast(`Ruta: ${distance} km · ${duration} min`, true);
+          if (typeof window.showToast === 'function') {
+            window.showToast(`Ruta: ${distance} km · ${duration} min`, true);
           }
         }
       })
