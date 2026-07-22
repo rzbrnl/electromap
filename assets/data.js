@@ -4,6 +4,7 @@
 const ChargerData = (() => {
   const API_KEY = '3d44a410-854e-4da9-b309-2c8e2b29b0f9';
   const API_BASE = 'https://api.openchargemap.io/v3/poi/';
+  const GOOGLE_MAPS_KEY = 'AIzaSyA2zmXXHHSmeIUBw-jxpesxsilUVQaeZW0';
   const CFE_URL = 'https://repodatos.atdt.gob.mx/api_update/cfe/electrolineras_publicas_en_mexico/cfe_dseec_paese_electrolineras_2026.csv';
   let cache = new Map();
   let lastFetch = null;
@@ -244,8 +245,41 @@ const ChargerData = (() => {
   }
 
   async function fetchDrivingDistances(chargers) {
-    // Google Maps Distance Matrix has CORS issues, skip for now
-    return chargers;
+    const BATCH_SIZE = 25;
+    const chargersWithCoords = chargers.filter(c => c.lat && c.lng);
+
+    for (let i = 0; i < chargersWithCoords.length; i += BATCH_SIZE) {
+      const batch = chargersWithCoords.slice(i, i + BATCH_SIZE);
+      const destinations = batch.map(c => c.lat + ',' + c.lng).join('|');
+
+      if (!destinations) continue;
+
+      const origin = userLat + ',' + userLng;
+      const url = 'https://maps.googleapis.com/maps/api/distancematrix/json?origins=' + origin + '&destinations=' + destinations + '&key=' + GOOGLE_MAPS_KEY + '&units=metric&language=es';
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        console.log('Google Maps response:', data.status);
+
+        if (data.status !== 'OK') {
+          console.warn('Google Maps API error:', data);
+          continue;
+        }
+
+        const elements = data.rows[0] ? data.rows[0].elements : [];
+
+        for (let j = 0; j < batch.length; j++) {
+          const element = elements[j];
+          if (element && element.status === 'OK') {
+            batch[j].drivingDistance = element.distance.value / 1000;
+            batch[j].drivingDuration = element.duration.text;
+          }
+        }
+      } catch (error) {
+        console.warn('Google Maps fetch error:', error);
+      }
+    }
   }
 
   function formatAddress(info) {
