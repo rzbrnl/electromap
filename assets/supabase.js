@@ -34,6 +34,14 @@ var SupabaseApp = (function() {
     return error ? [] : data;
   }
 
+  async function getCommentsByUser(userId) {
+    if (!client) return [];
+    const { data, error } = await client.from('comments')
+      .select('id')
+      .eq('user_id', userId);
+    return error ? [] : data;
+  }
+
   async function addComment(chargerId, userName, rating, comment) {
     if (!client) return null;
     const { data, error } = await client.from('comments').insert({
@@ -168,7 +176,7 @@ var SupabaseApp = (function() {
 
   return {
     init, getClient,
-    getComments, addComment, getAverageRating,
+    getComments, getCommentsByUser, addComment, getAverageRating,
     getPhotos, addPhoto,
     addReport, getReports,
     getFavorites, toggleFavorite,

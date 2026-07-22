@@ -442,8 +442,11 @@
       return;
     }
     grid.innerHTML = photos.map(function(p) {
-      return '<img src="' + p.url + '" alt="' + (p.caption || 'Foto') + '" loading="lazy" onerror="this.style.display=\'none\'">';
+      return '<img src="' + p.url + '" alt="' + (p.caption || 'Foto') + '" loading="lazy" onerror="this.style.display=\'none\'" class="community-photo-thumb">';
     }).join('');
+    grid.querySelectorAll('.community-photo-thumb').forEach(function(img) {
+      img.addEventListener('click', function() { openLightbox(this.src); });
+    });
   }
 
   async function handlePhotoUpload(e) {
@@ -546,7 +549,8 @@
         '<div class="profile-stat-row"><span class="profile-stat-label">Favoritos</span><span class="profile-stat-value" id="profile-fav-count">0</span></div>' +
         '<div class="profile-stat-row"><span class="profile-stat-label">Reseñas</span><span class="profile-stat-value" id="profile-comment-count">0</span></div>' +
       '</div>' +
-      '<button class="btn-primary" id="btn-logout" style="background:var(--danger);margin-top:16px;width:100%;">Cerrar sesión</button>';
+      '<button class="btn-primary" id="btn-save-avatar" style="background:var(--accent);margin-top:16px;width:100%;display:none;">Guardar foto</button>' +
+      '<button class="btn-primary" id="btn-logout" style="background:var(--danger);margin-top:8px;width:100%;">Cerrar sesión</button>';
     modal.classList.remove('hidden');
 
     // Load profile data
@@ -554,24 +558,65 @@
       var el = document.getElementById('profile-fav-count');
       if (el) el.textContent = favs.length;
     });
+    SupabaseApp.getCommentsByUser(user.id).then(function(comments) {
+      var el = document.getElementById('profile-comment-count');
+      if (el) el.textContent = comments.length;
+    });
+
+    var pendingAvatarData = null;
 
     // Avatar upload
     document.getElementById('avatar-upload-area').addEventListener('click', function() {
       document.getElementById('avatar-file-input').click();
     });
 
-    document.getElementById('avatar-file-input').addEventListener('change', async function(e) {
+    document.getElementById('avatar-file-input').addEventListener('change', function(e) {
       var file = e.target.files[0];
       if (!file) return;
       if (file.size > 2 * 1024 * 1024) { showToast('La imagen no puede superar 2MB'); return; }
 
       var reader = new FileReader();
       reader.onload = function(ev) {
+        pendingAvatarData = ev.target.result;
         var avatarEl = document.getElementById('profile-avatar');
         avatarEl.innerHTML = '<img src="' + ev.target.result + '" alt="Avatar">';
+        document.getElementById('btn-save-avatar').style.display = 'block';
       };
       reader.readAsDataURL(file);
     });
+
+    // Save avatar
+    document.getElementById('btn-save-avatar').addEventListener('click', async function() {
+      if (!pendingAvatarData) return;
+      var btn = this;
+      btn.textContent = 'Guardando...';
+      btn.disabled = true;
+      try {
+        var client = SupabaseApp.getClient();
+        if (client) {
+          await client.from('user_profiles').upsert({ id: user.id, avatar_url: pendingAvatarData }, { onConflict: 'id' });
+          showToast('Foto de perfil guardada');
+          btn.style.display = 'none';
+        }
+      } catch (err) {
+        showToast('Error al guardar foto');
+      }
+      btn.disabled = false;
+    });
+
+    // Load existing avatar
+    (async function() {
+      try {
+        var client = SupabaseApp.getClient();
+        if (client) {
+          var { data } = await client.from('user_profiles').select('avatar_url').eq('id', user.id).single();
+          if (data && data.avatar_url) {
+            var avatarEl = document.getElementById('profile-avatar');
+            avatarEl.innerHTML = '<img src="' + data.avatar_url + '" alt="Avatar">';
+          }
+        }
+      } catch (e) {}
+    })();
 
     // Logout
     document.getElementById('btn-logout').addEventListener('click', async function() {
@@ -580,6 +625,18 @@
       showToast('Sesión cerrada');
       setTimeout(function() { window.location.reload(); }, 1000);
     });
+  }
+
+  // === LIGHTBOX ===
+  function openLightbox(src) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+    var img = document.createElement('img');
+    img.src = src;
+    img.style.cssText = 'max-width:90%;max-height:90%;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.5);';
+    overlay.appendChild(img);
+    overlay.addEventListener('click', function() { overlay.remove(); });
+    document.body.appendChild(overlay);
   }
 
   function toggleAuthMode() {
