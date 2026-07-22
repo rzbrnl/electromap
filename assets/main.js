@@ -313,13 +313,29 @@
   var isLoginMode = true;
 
   function toggleAuthModal() {
-    var modal = document.getElementById('auth-modal');
-    modal.classList.toggle('hidden');
+    var user = SupabaseApp.getUser();
+    if (user && user.data && user.data.user) {
+      showProfileModal();
+    } else {
+      var modal = document.getElementById('auth-modal');
+      modal.classList.toggle('hidden');
+    }
   }
 
   function hideAuthModal() {
     document.getElementById('auth-modal').classList.add('hidden');
     document.getElementById('auth-error').classList.add('hidden');
+  }
+
+  function showProfileModal() {
+    var user = SupabaseApp.getUser();
+    if (!user || !user.data || !user.data.user) return;
+    var u = user.data.user;
+    alert('Bienvenido, ' + (u.email || 'Usuario'));
+  }
+
+  function updateUserUI() {
+    console.log('User UI updated');
   }
 
   function toggleAuthMode() {
@@ -342,17 +358,18 @@
 
     try {
       if (isLoginMode) {
-        var result = await SupabaseApp.signIn(email, password);
-        if (result) {
+        var loginResult = await SupabaseApp.signIn(email, password);
+        if (loginResult) {
           hideAuthModal();
           showToast('Sesión iniciada correctamente');
+          updateUserUI();
         } else {
           errorEl.textContent = 'Error al iniciar sesión. Verifica tus credenciales.';
           errorEl.classList.remove('hidden');
         }
       } else {
-        var result = await SupabaseApp.signUp(email, password);
-        if (result) {
+        var signupResult = await SupabaseApp.signUp(email, password);
+        if (signupResult) {
           hideAuthModal();
           showToast('Cuenta creada. Revisa tu correo para confirmar.');
         } else {
