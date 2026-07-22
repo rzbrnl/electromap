@@ -3,14 +3,23 @@
 var SupabaseApp = (function() {
   var client = null;
   var currentUser = null;
+  var initialized = false;
 
-  function init() {
-    if (typeof CONFIG === 'undefined' || !CONFIG.SUPABASE_URL) {
-      console.warn('Supabase not configured');
-      return;
+  async function init() {
+    if (initialized) return;
+    try {
+      var resp = await fetch('/api/config');
+      if (resp.ok) {
+        var config = await resp.json();
+        if (config.SUPABASE_URL && config.SUPABASE_KEY) {
+          client = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_KEY);
+          initialized = true;
+          console.log('Supabase initialized');
+        }
+      }
+    } catch (e) {
+      console.warn('Supabase init error:', e.message);
     }
-    client = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
-    console.log('Supabase initialized');
   }
 
   function getClient() { return client; }

@@ -12,6 +12,7 @@
 
   function init() {
     ChargerMap.init(onChargerSelect);
+    SupabaseApp.init();
     loadSavedTheme();
     loadSavedUnit();
     setupEventListeners();
