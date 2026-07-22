@@ -13,6 +13,7 @@ var ChargerMap = (function() {
   var navActive = false;
   var navRoute = null;
   var navSteps = [];
+  var navStepCoords = [];
   var navCurrentStep = 0;
   var navWatchId = null;
   var googleMap = null;
@@ -162,10 +163,19 @@ var ChargerMap = (function() {
       panel.className = 'navigation-panel';
       document.getElementById('map').appendChild(panel);
     }
+
+    navStepCoords = [];
     var stepsHtml = '';
     if (route.legs && route.legs[0] && route.legs[0].steps) {
       route.legs[0].steps.forEach(function(step, i) {
         if (!step.maneuver) return;
+
+        // Store step coordinates
+        var coord = step.maneuver.location;
+        if (coord) {
+          navStepCoords.push({ lat: coord[1], lng: coord[0] });
+        }
+
         var icon = '→';
         var instruction = '';
         var t = step.maneuver.type;
@@ -175,11 +185,13 @@ var ChargerMap = (function() {
         else if (t === 'new name' || t === 'continue') { icon = '↑'; instruction = step.name ? 'Sigue por ' + step.name : 'Continúa recto'; }
         else if (t === 'roundabout') { icon = '🔄'; instruction = 'En la rotonda, toma la salida ' + (step.maneuver.exit || ''); }
         else { instruction = step.name || 'Continúa'; }
+
         var stepDist = (step.distance / 1000).toFixed(1);
         stepsHtml += '<div class="nav-step' + (i === 0 ? ' active' : '') + '" id="nav-step-' + i + '"><div class="nav-step-icon">' + icon + '</div><div class="nav-step-info"><div class="nav-step-text">' + instruction + '</div><div class="nav-step-dist">' + stepDist + ' km</div></div></div>';
       });
     }
-    panel.innerHTML = '<div class="nav-header"><div class="nav-summary"><span class="nav-distance">' + distance + ' km</span><span class="nav-time">· ' + duration + ' min</span></div><button class="nav-close" onclick="ChargerMap.stopNavigation()">✕</button></div><div class="nav-steps">' + stepsHtml + '</div><div class="nav-actions"><button class="nav-start-btn" onclick="ChargerMap.startNavigation()">🔊 Iniciar navegación con voz</button><button class="nav-google-btn" onclick="ChargerMap.openNavigation()">Abrir en Google Maps</button></div>';
+
+    panel.innerHTML = '<div class="nav-header"><div class="nav-summary"><span class="nav-distance">' + distance + ' km</span><span class="nav-time">· ' + duration + ' min</span></div><button class="nav-close" onclick="ChargerMap.stopNavigation()">✕</button></div><div class="nav-steps">' + stepsHtml + '</div><div class="nav-actions"><button class="nav-start-btn" onclick="ChargerMap.startNavigation()">🔊 Iniciar navegación con voz</button><button class="nav-google-btn" onclick="ChargerMap.openNavigation()">Google Maps</button></div>';
   }
 
   // Voice navigation
@@ -261,32 +273,33 @@ var ChargerMap = (function() {
   }
 
   function updateNavStep(lat, lng) {
-    // Simple step detection - advance when within 30m of step end
     var steps = document.querySelectorAll('.nav-step');
-    if (navCurrentStep < steps.length - 1) {
-      var nextStep = steps[navCurrentStep + 1];
-      if (nextStep) {
-        var stepDist = nextStep.querySelector('.nav-step-dist');
-        if (stepDist) {
-          var distText = stepDist.textContent;
-          var distKm = parseFloat(distText);
-          // If close enough to next step, advance
-          if (distKm < 0.1) { // Less than 100m
-            navCurrentStep++;
-            // Highlight current step
-            steps.forEach(function(s) { s.classList.remove('active'); });
-            steps[navCurrentStep].classList.add('active');
+    if (navCurrentStep >= steps.length - 1) return;
 
-            // Speak instruction
-            var instruction = steps[navCurrentStep].querySelector('.nav-step-text');
-            if (instruction) {
-              speak(instruction.textContent);
-            }
+    // Get next step coordinates
+    var nextCoord = navStepCoords[navCurrentStep + 1];
+    if (!nextCoord) return;
 
-            // Scroll to current step
-            steps[navCurrentStep].scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
+    // Calculate distance to next step
+    var distToNext = getDistance(lat, lng, nextCoord.lat, nextCoord.lng);
+
+    // If within 50 meters of next step, advance
+    if (distToNext < 0.05) {
+      navCurrentStep++;
+
+      // Highlight current step
+      steps.forEach(function(s) { s.classList.remove('active'); });
+      if (steps[navCurrentStep]) {
+        steps[navCurrentStep].classList.add('active');
+
+        // Speak instruction
+        var instruction = steps[navCurrentStep].querySelector('.nav-step-text');
+        if (instruction) {
+          speak(instruction.textContent);
         }
+
+        // Scroll to current step
+        steps[navCurrentStep].scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
   }
