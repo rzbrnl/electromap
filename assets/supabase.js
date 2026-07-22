@@ -158,6 +158,7 @@ var SupabaseApp = (function() {
   async function signOut() {
     if (!client) return;
     await client.auth.signOut();
+    currentUser = null;
   }
 
   function getUser() {

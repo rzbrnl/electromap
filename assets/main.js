@@ -315,7 +315,7 @@
   async function toggleAuthModal() {
     try {
       var result = await SupabaseApp.getUser();
-      if (result && result.data && result.data.user) {
+      if (result && result.data && result.data.user && result.data.user.id) {
         showProfileModal(result.data.user);
       } else {
         document.getElementById('auth-modal').classList.remove('hidden');
