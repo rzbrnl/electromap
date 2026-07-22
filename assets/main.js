@@ -301,8 +301,8 @@
 
   function toggleAuthMode() {
     isLoginMode = !isLoginMode;
-    document.getElementById('auth-title').textContent = isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta';
-    document.getElementById('auth-submit').textContent = isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta';
+    document.getElementById('auth-title').textContent = isLoginMode ? 'Iniciar sesión' : 'Crear cuenta';
+    document.getElementById('auth-submit').textContent = isLoginMode ? 'Iniciar sesión' : 'Crear cuenta';
     document.getElementById('toggle-auth').textContent = isLoginMode ? 'Regístrate' : 'Inicia sesión';
   }
 
@@ -342,7 +342,7 @@
       errorEl.classList.remove('hidden');
     }
 
-    submitBtn.textContent = isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta';
+    submitBtn.textContent = isLoginMode ? 'Iniciar sesión' : 'Crear cuenta';
     submitBtn.disabled = false;
   }
 
