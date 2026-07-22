@@ -63,12 +63,6 @@ const ChargerData = (() => {
       const chargers = parseChargers(data);
       console.log('Parsed', chargers.length, 'chargers');
 
-      if (userLat && userLng) {
-        fetchDrivingDistances(chargers).catch(err => {
-          console.warn('Driving distances unavailable:', err.message);
-        });
-      }
-
       cache.set(cacheKey, {
         data: chargers,
         timestamp: Date.now()

@@ -171,27 +171,8 @@
       document.getElementById('charger-duration').textContent = charger.drivingDuration || '';
       document.getElementById('charger-duration').style.display = charger.drivingDuration ? 'block' : 'none';
     } else {
-      document.getElementById('charger-distance').textContent = 'Calculando...';
+      document.getElementById('charger-distance').textContent = 'N/A';
       document.getElementById('charger-duration').style.display = 'none';
-
-      if (userLat && userLng && charger.lat && charger.lng) {
-        fetch(`https://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${charger.lng},${charger.lat}?overview=false`)
-          .then(r => r.json())
-          .then(data => {
-            if (data.code === 'Ok') {
-              const dist = (data.routes[0].distance / 1000).toFixed(1);
-              const dur = Math.round(data.routes[0].duration / 60);
-              document.getElementById('charger-distance').textContent = `${dist} km`;
-              charger.drivingDistance = data.routes[0].distance / 1000;
-              charger.drivingDuration = `${dur} min`;
-            } else {
-              document.getElementById('charger-distance').textContent = 'N/A';
-            }
-          })
-          .catch(() => {
-            document.getElementById('charger-distance').textContent = 'N/A';
-          });
-      }
     }
 
     document.getElementById('charger-points').textContent = charger.numberOfPoints || 'N/A';
