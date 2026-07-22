@@ -269,16 +269,6 @@
       else { extra.style.display = 'none'; btn.innerHTML = '<svg class="icon" width="14" height="14"><use href="#icon-info"></use></svg> Más información'; }
     });
 
-    var searchTimeout;
-    document.getElementById('search').addEventListener('input', function(e) {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(function() {
-        var q = e.target.value;
-        if (q.length >= 2) { filteredChargers = ChargerData.searchChargers(allChargers, q); ChargerMap.addChargerMarkers(filteredChargers); updateStats(); }
-        else if (q.length === 0) { applyFilters(); }
-      }, 300);
-    });
-
     var moveTimeout;
     ChargerMap.onMapEvent('moveend', function() {
       clearTimeout(moveTimeout);
