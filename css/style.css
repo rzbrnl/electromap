@@ -1117,6 +1117,26 @@ body {
   box-shadow: var(--shadow-lg);
   z-index: 2000;
   animation: toastIn 0.3s ease-out;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toast-nav-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.toast-nav-btn:hover {
+  background: var(--accent-hover);
 }
 
 @keyframes toastIn {

@@ -229,6 +229,7 @@ const ChargerMap = (() => {
 
   let currentRoute = null;
   let routeMarkers = [];
+  let routeDestination = null;
 
   function showRoute(originLat, originLng, destLat, destLng, destName) {
     if (currentRoute) {
@@ -237,6 +238,8 @@ const ChargerMap = (() => {
     }
     routeMarkers.forEach(m => map.removeLayer(m));
     routeMarkers = [];
+
+    routeDestination = { lat: destLat, lng: destLng, name: destName };
 
     const destIcon = L.divIcon({
       html: `<div style="width:32px;height:32px;background:#22c55e;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
@@ -269,10 +272,19 @@ const ChargerMap = (() => {
           const distance = (data.routes[0].distance / 1000).toFixed(1);
           const duration = Math.round(data.routes[0].duration / 60);
 
-          showToast(`Ruta: ${distance} km · ${duration} min`);
+          if (typeof showToast === 'function') {
+            showToast(`Ruta: ${distance} km · ${duration} min`, true);
+          }
         }
       })
       .catch(err => console.error('Route error:', err));
+  }
+
+  function openNavigation() {
+    if (routeDestination) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${routeDestination.lat},${routeDestination.lng}&travelmode=driving`;
+      window.open(url, '_blank');
+    }
   }
 
   function removeRouteLayer(layer) {
@@ -293,6 +305,7 @@ const ChargerMap = (() => {
     getRadius,
     onMapEvent,
     showRoute,
+    openNavigation,
     removeRouteLayer
   };
 })();

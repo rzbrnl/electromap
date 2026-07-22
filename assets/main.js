@@ -160,8 +160,9 @@
       document.getElementById('charger-duration').textContent = charger.drivingDuration || '';
       document.getElementById('charger-duration').style.display = charger.drivingDuration ? 'block' : 'none';
     } else if (charger.distance) {
-      document.getElementById('charger-distance').textContent = `${charger.distance.toFixed(1)} km (línea recta)`;
-      document.getElementById('charger-duration').style.display = 'none';
+      document.getElementById('charger-distance').textContent = `${charger.distance.toFixed(1)} km`;
+      document.getElementById('charger-duration').textContent = 'en línea recta';
+      document.getElementById('charger-duration').style.display = 'block';
     } else {
       document.getElementById('charger-distance').textContent = 'N/A';
       document.getElementById('charger-duration').style.display = 'none';
@@ -220,12 +221,16 @@
   let directionsMap = null;
   let routeControl = null;
   let routeLayer = null;
+  let currentCharger = null;
 
   function showRouteOnMap(charger) {
     if (routeLayer) {
       ChargerMap.removeRouteLayer(routeLayer);
       routeLayer = null;
     }
+
+    currentCharger = charger;
+    hideSidebar();
 
     if (userLat && userLng) {
       ChargerMap.showRoute(userLat, userLng, charger.lat, charger.lng, charger.name);
@@ -234,14 +239,20 @@
     }
   }
 
-  function showToast(message) {
+  function showToast(message, showNavButton = false) {
     const existing = document.querySelector('.toast');
     if (existing) existing.remove();
 
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.textContent = message;
+    toast.innerHTML = `
+      <span>${message}</span>
+      ${showNavButton ? '<button class="toast-nav-btn" onclick="ChargerMap.openNavigation()">Iniciar ruta</button>' : ''}
+    `;
     document.body.appendChild(toast);
+
+    setTimeout(() => toast.remove(), 5000);
+  }
 
     setTimeout(() => toast.remove(), 3000);
   }
