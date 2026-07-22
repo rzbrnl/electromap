@@ -265,9 +265,6 @@
     setTimeout(() => toast.remove(), 5000);
   }
 
-    setTimeout(() => toast.remove(), 3000);
-  }
-
   function hideSidebar() {
     document.getElementById('sidebar').classList.add('hidden');
   }
