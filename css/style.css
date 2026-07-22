@@ -1266,20 +1266,32 @@ body {
   margin-top: 2px;
 }
 
-.nav-google-btn {
-  margin: 8px 12px 12px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface);
+.nav-actions {
+  padding: 8px 12px 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.nav-start-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: var(--accent);
+  color: white;
   border-radius: var(--radius-sm);
   font-size: 13px;
-  color: var(--text);
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
 }
 
-.nav-google-btn:hover {
-  background: var(--surface-hover);
+.nav-start-btn:hover {
+  background: var(--accent-hover);
+}
+
+.nav-google-btn {
+  margin: 0;
+  flex: 1;
 }
 
 @keyframes toastIn {

@@ -9,6 +9,15 @@ var ChargerMap = (function() {
   var routeMarkers = [];
   var routeDestination = null;
 
+  // Navigation state
+  var navActive = false;
+  var navRoute = null;
+  var navSteps = [];
+  var navCurrentStep = 0;
+  var navWatchId = null;
+  var googleMap = null;
+  var googleDirectionsRenderer = null;
+
   function init(callback) {
     onChargerSelect = callback;
     map = L.map('map', {
@@ -131,6 +140,7 @@ var ChargerMap = (function() {
     var bounds = L.latLngBounds([[originLat, originLng], [destLat, destLng]]);
     map.fitBounds(bounds, { padding: [80, 80] });
 
+    // Use OSRM for route display on our map
     var url = 'https://router.project-osrm.org/route/v1/driving/' + originLng + ',' + originLat + ';' + destLng + ',' + destLat + '?overview=full&geometries=geojson&steps=true';
     fetch(url).then(function(r) { return r.json(); }).then(function(data) {
       if (data.code === 'Ok') {
@@ -166,10 +176,130 @@ var ChargerMap = (function() {
         else if (t === 'roundabout') { icon = '🔄'; instruction = 'En la rotonda, toma la salida ' + (step.maneuver.exit || ''); }
         else { instruction = step.name || 'Continúa'; }
         var stepDist = (step.distance / 1000).toFixed(1);
-        stepsHtml += '<div class="nav-step' + (i === 0 ? ' active' : '') + '"><div class="nav-step-icon">' + icon + '</div><div class="nav-step-info"><div class="nav-step-text">' + instruction + '</div><div class="nav-step-dist">' + stepDist + ' km</div></div></div>';
+        stepsHtml += '<div class="nav-step' + (i === 0 ? ' active' : '') + '" id="nav-step-' + i + '"><div class="nav-step-icon">' + icon + '</div><div class="nav-step-info"><div class="nav-step-text">' + instruction + '</div><div class="nav-step-dist">' + stepDist + ' km</div></div></div>';
       });
     }
-    panel.innerHTML = '<div class="nav-header"><div class="nav-summary"><span class="nav-distance">' + distance + ' km</span><span class="nav-time">· ' + duration + ' min</span></div><button class="nav-close" onclick="ChargerMap.closeNavigation()">✕</button></div><div class="nav-steps">' + stepsHtml + '</div><button class="nav-google-btn" onclick="ChargerMap.openNavigation()">Abrir en Google Maps</button>';
+    panel.innerHTML = '<div class="nav-header"><div class="nav-summary"><span class="nav-distance">' + distance + ' km</span><span class="nav-time">· ' + duration + ' min</span></div><button class="nav-close" onclick="ChargerMap.stopNavigation()">✕</button></div><div class="nav-steps">' + stepsHtml + '</div><div class="nav-actions"><button class="nav-start-btn" onclick="ChargerMap.startNavigation()">🔊 Iniciar navegación con voz</button><button class="nav-google-btn" onclick="ChargerMap.openNavigation()">Abrir en Google Maps</button></div>';
+  }
+
+  // Voice navigation
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      var utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-MX';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+
+  function startNavigation() {
+    if (!routeDestination) return;
+    navActive = true;
+    navCurrentStep = 0;
+    speak('Navegación iniciada. Sigue las instrucciones en pantalla.');
+
+    // Start GPS tracking
+    if (navigator.geolocation) {
+      navWatchId = navigator.geolocation.watchPosition(
+        function(pos) {
+          if (!navActive) return;
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+
+          // Update user marker
+          if (userMarker) {
+            userMarker.setLatLng([lat, lng]);
+          }
+
+          // Check if near destination
+          var distToDest = getDistance(lat, lng, routeDestination.lat, routeDestination.lng);
+          if (distToDest < 0.05) { // 50 meters
+            speak('Has llegado a tu destino.');
+            stopNavigation();
+            return;
+          }
+
+          // Update current step based on position
+          updateNavStep(lat, lng);
+        },
+        function(err) { console.error('GPS error:', err); },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 2000 }
+      );
+    }
+
+    // Keep screen awake
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').catch(function() {});
+    }
+
+    updateNavButton(true);
+  }
+
+  function stopNavigation() {
+    navActive = false;
+    if (navWatchId) {
+      navigator.geolocation.clearWatch(navWatchId);
+      navWatchId = null;
+    }
+    window.speechSynthesis.cancel();
+    updateNavButton(false);
+  }
+
+  function updateNavButton(active) {
+    var btn = document.querySelector('.nav-start-btn');
+    if (btn) {
+      if (active) {
+        btn.textContent = '⏹ Detener navegación';
+        btn.onclick = stopNavigation;
+      } else {
+        btn.textContent = '🔊 Iniciar navegación con voz';
+        btn.onclick = startNavigation;
+      }
+    }
+  }
+
+  function updateNavStep(lat, lng) {
+    // Simple step detection - advance when within 30m of step end
+    var steps = document.querySelectorAll('.nav-step');
+    if (navCurrentStep < steps.length - 1) {
+      var nextStep = steps[navCurrentStep + 1];
+      if (nextStep) {
+        var stepDist = nextStep.querySelector('.nav-step-dist');
+        if (stepDist) {
+          var distText = stepDist.textContent;
+          var distKm = parseFloat(distText);
+          // If close enough to next step, advance
+          if (distKm < 0.1) { // Less than 100m
+            navCurrentStep++;
+            // Highlight current step
+            steps.forEach(function(s) { s.classList.remove('active'); });
+            steps[navCurrentStep].classList.add('active');
+
+            // Speak instruction
+            var instruction = steps[navCurrentStep].querySelector('.nav-step-text');
+            if (instruction) {
+              speak(instruction.textContent);
+            }
+
+            // Scroll to current step
+            steps[navCurrentStep].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }
+    }
+  }
+
+  function getDistance(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   }
 
   function openNavigation() {
@@ -179,6 +309,7 @@ var ChargerMap = (function() {
   }
 
   function closeNavigation() {
+    stopNavigation();
     var panel = document.getElementById('navigation-panel');
     if (panel) panel.remove();
     if (currentRoute) { map.removeLayer(currentRoute); currentRoute = null; }
@@ -196,6 +327,7 @@ var ChargerMap = (function() {
     getBounds: getBounds, getCenter: getCenter, getZoom: getZoom,
     getRadius: getRadius, onMapEvent: onMapEvent, showRoute: showRoute,
     openNavigation: openNavigation, closeNavigation: closeNavigation,
+    startNavigation: startNavigation, stopNavigation: stopNavigation,
     removeRouteLayer: removeRouteLayer
   };
 })();
