@@ -2,12 +2,24 @@
 /* CFE Electrolineras Públicas México */
 
 var ChargerData = (function() {
-  var GOOGLE_MAPS_KEY = (typeof CONFIG !== 'undefined' && CONFIG.GOOGLE_MAPS_KEY) ? CONFIG.GOOGLE_MAPS_KEY : '';
+  var GOOGLE_MAPS_KEY = '';
   var cache = new Map();
   var lastFetch = null;
   var userLat = null;
   var userLng = null;
   var cfeData = null;
+
+  async function loadConfig() {
+    try {
+      var resp = await fetch('/api/config');
+      if (resp.ok) {
+        var config = await resp.json();
+        GOOGLE_MAPS_KEY = config.GOOGLE_MAPS_KEY || '';
+      }
+    } catch (e) {
+      console.warn('Config load error:', e.message);
+    }
+  }
 
   function setUserLocation(lat, lng) {
     userLat = lat;
@@ -137,6 +149,9 @@ var ChargerData = (function() {
     searchChargers: searchChargers,
     getStats: getStats,
     getMarkerColor: getMarkerColor,
+    loadConfig: loadConfig,
     get lastFetch() { return lastFetch; }
   };
 })();
+
+ChargerData.loadConfig();
