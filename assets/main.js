@@ -970,57 +970,46 @@
   }
 
   function reverseGeocode(lat, lng, addressFieldId) {
-    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=18&addressdetails=1')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.display_name) {
+    if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+      var geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
+        if (status === 'OK' && results[0]) {
           var el = document.getElementById(addressFieldId);
-          if (el && !el.value) el.value = data.display_name;
+          if (el && !el.value) el.value = results[0].formatted_address;
         }
-      }).catch(function() {});
+      });
+    }
   }
 
   function addMapSearchBar(map, marker, addressFieldId, latFieldId, lngFieldId) {
-    var container = document.getElementById('station-map-picker').parentElement;
+    var mapContainer = document.getElementById('station-map-picker').parentElement;
+    mapContainer.style.position = 'relative';
     var searchDiv = document.createElement('div');
-    searchDiv.style.cssText = 'position:absolute;top:8px;left:8px;right:8px;z-index:1000;display:flex;gap:6px;';
+    searchDiv.style.cssText = 'position:absolute;top:8px;left:8px;right:8px;z-index:1000;';
     var input = document.createElement('input');
     input.type = 'text';
     input.placeholder = 'Buscar dirección...';
-    input.id = 'map-search-input';
-    input.style.cssText = 'flex:1;padding:8px 12px;border:none;border-radius:var(--radius-sm);font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.3);background:var(--surface);color:var(--text);font-family:inherit;';
-    var searchBtn = document.createElement('button');
-    searchBtn.type = 'button';
-    searchBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
-    searchBtn.style.cssText = 'padding:8px 12px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:white;cursor:pointer;display:flex;align-items:center;';
+    input.style.cssText = 'width:100%;padding:8px 12px;border:none;border-radius:var(--radius-sm);font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.3);background:var(--surface);color:var(--text);font-family:inherit;';
     searchDiv.appendChild(input);
-    searchDiv.appendChild(searchBtn);
-    container.style.position = 'relative';
-    container.insertBefore(searchDiv, container.firstChild);
+    mapContainer.insertBefore(searchDiv, mapContainer.firstChild);
 
-    function doSearch() {
-      var query = input.value.trim();
-      if (!query) return;
-      fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&limit=1&countrycodes=mx')
-        .then(function(r) { return r.json(); })
-        .then(function(results) {
-          if (results && results.length > 0) {
-            var r = results[0];
-            var lat = parseFloat(r.lat);
-            var lng = parseFloat(r.lon);
-            marker.setLatLng([lat, lng]);
-            map.setView([lat, lng], 16);
-            document.getElementById(latFieldId).value = lat;
-            document.getElementById(lngFieldId).value = lng;
-            document.getElementById(addressFieldId).value = r.display_name;
-          } else {
-            showToast('No se encontró la dirección');
-          }
-        }).catch(function() { showToast('Error al buscar dirección'); });
+    // Try Google Places Autocomplete
+    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+      var autocomplete = new google.maps.places.Autocomplete(input, { componentRestrictions: { country: 'mx' } });
+      autocomplete.addListener('place_changed', function() {
+        var place = autocomplete.getPlace();
+        if (place && place.geometry && place.geometry.location) {
+          var loc = place.geometry.location;
+          var lat = loc.lat();
+          var lng = loc.lng();
+          marker.setLatLng([lat, lng]);
+          map.setView([lat, lng], 16);
+          document.getElementById(latFieldId).value = lat;
+          document.getElementById(lngFieldId).value = lng;
+          document.getElementById(addressFieldId).value = place.formatted_address || place.name || '';
+        }
+      });
     }
-
-    searchBtn.addEventListener('click', doSearch);
-    input.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
   }
 
   function createStationIcon() {
