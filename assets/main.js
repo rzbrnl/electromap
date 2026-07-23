@@ -677,13 +677,30 @@
     var name = document.getElementById('station-name').value.trim();
     if (!name) { showToast('El nombre es requerido'); return; }
 
+    var descParts = [];
+    var connector = document.getElementById('station-connector').value;
+    var level = document.getElementById('station-level').value;
+    var power = document.getElementById('station-power').value;
+    var points = document.getElementById('station-points').value;
+    var cost = document.getElementById('station-cost').value;
+    var operator = document.getElementById('station-operator').value.trim();
+    var extraDesc = document.getElementById('station-description').value.trim();
+
+    if (connector) descParts.push('Conector: ' + connector);
+    if (level) descParts.push('Nivel: ' + level);
+    if (power) descParts.push('Potencia: ' + power + ' kW');
+    if (points) descParts.push('Puntos: ' + points);
+    if (cost) descParts.push('Costo: ' + cost);
+    if (operator) descParts.push('Operador: ' + operator);
+    if (extraDesc) descParts.push(extraDesc);
+
     var data = {
       chargerId: null,
       type: 'new_station',
-      description: document.getElementById('station-description').value.trim() || '',
+      description: descParts.join('\n'),
       newStationName: name,
       newStationAddress: document.getElementById('station-address').value.trim(),
-      newStationConnector: document.getElementById('station-connector').value.trim(),
+      newStationConnector: connector,
       newStationLat: parseFloat(document.getElementById('station-lat').value) || null,
       newStationLng: parseFloat(document.getElementById('station-lng').value) || null
     };
