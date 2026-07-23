@@ -103,17 +103,21 @@ var ChargerData = (function() {
   }
 
   function filterChargers(chargers, filters) {
+    var totalConnectors = document.querySelectorAll('#filter-connectors input[type="checkbox"]').length;
+    var totalLevels = document.querySelectorAll('#filter-levels input[type="checkbox"]').length;
+    var totalStatus = document.querySelectorAll('#filter-status input[type="checkbox"]').length;
+
     return chargers.filter(function(charger) {
       // Always show community/approved stations
       if (charger._approvedId) return true;
 
-      if (filters.connectorTypes && filters.connectorTypes.length > 0) {
+      if (filters.connectorTypes && filters.connectorTypes.length > 0 && filters.connectorTypes.length < totalConnectors) {
         if (!charger.connections.some(function(conn) { return filters.connectorTypes.some(function(type) { return conn.type.includes(type); }); })) return false;
       }
-      if (filters.levels && filters.levels.length > 0) {
+      if (filters.levels && filters.levels.length > 0 && filters.levels.length < totalLevels) {
         if (!charger.connections.some(function(conn) { return filters.levels.indexOf(String(conn.levelId)) !== -1; })) return false;
       }
-      if (filters.status && filters.status.length > 0) {
+      if (filters.status && filters.status.length > 0 && filters.status.length < totalStatus) {
         var statusMap = { 'operational': [50, 10, 30], 'non-operational': [20, 30, 150], 'unknown': [0, 75, 999] };
         var sid = charger.statusId || 0;
         if (!filters.status.some(function(s) { return (statusMap[s] || []).indexOf(sid) !== -1; })) return false;
