@@ -42,10 +42,11 @@ var SupabaseApp = (function() {
     return error ? [] : data;
   }
 
-  async function addComment(chargerId, userName, rating, comment) {
+  async function addComment(chargerId, userName, rating, comment, userId) {
     if (!client) return null;
     const { data, error } = await client.from('comments').insert({
       charger_id: chargerId,
+      user_id: userId || null,
       user_name: userName || 'Anónimo',
       rating: rating,
       comment: comment
@@ -103,10 +104,11 @@ var SupabaseApp = (function() {
     return !error;
   }
 
-  async function addPhoto(chargerId, url, caption) {
+  async function addPhoto(chargerId, url, caption, userId) {
     if (!client) return null;
     const { data, error } = await client.from('photos').insert({
       charger_id: chargerId,
+      user_id: userId || null,
       url: url,
       caption: caption || ''
     }).select();

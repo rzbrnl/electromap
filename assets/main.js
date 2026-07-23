@@ -484,7 +484,7 @@
     if (!text && !selectedRating) { showToast('Escribe un comentario o selecciona una calificación'); return; }
 
     var userName = user.email ? user.email.split('@')[0] : 'Anónimo';
-    var result = await SupabaseApp.addComment(currentCharger.id, userName, selectedRating || null, text);
+    var result = await SupabaseApp.addComment(currentCharger.id, userName, selectedRating || null, text, user.id);
     if (result) {
       document.getElementById('comment-text').value = '';
       selectedRating = 0;
@@ -572,7 +572,7 @@
     var reader = new FileReader();
     reader.onload = async function(ev) {
       var dataUrl = ev.target.result;
-      var result = await SupabaseApp.addPhoto(currentCharger.id, dataUrl, '');
+      var result = await SupabaseApp.addPhoto(currentCharger.id, dataUrl, '', user.id);
       if (result) {
         loadCommunityPhotos(currentCharger);
         showToast('Foto agregada');
