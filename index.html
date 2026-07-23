@@ -25,7 +25,7 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
     />
-    <link rel="stylesheet" href="css/style.css?v=em50" />
+    <link rel="stylesheet" href="css/style.css?v=em51" />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'><path d='M7 2v11h3v9l7-12h-4l4-8z'/></svg>"
@@ -631,68 +631,74 @@
           </button>
         </div>
         <form id="new-station-form">
-          <div id="station-map-picker" style="width:100%;height:220px;border-radius:var(--radius-sm);margin-bottom:12px;cursor:crosshair;"></div>
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;text-align:center;">Haz clic en el mapa para colocar el pin. Arrástralo para ajustar.</p>
-          <div class="form-group">
-            <label>Nombre de la estación</label>
-            <input type="text" id="station-name" placeholder="Ej: CFE Santiago" required />
-          </div>
-          <div class="form-group">
-            <label>Dirección</label>
-            <input type="text" id="station-address" placeholder="Dirección completa" />
-          </div>
-          <div class="form-group">
-            <label>Tipo de conector</label>
-            <select id="station-connector">
-              <option value="SAE J1772">SAE J1772 (Nivel 2)</option>
-              <option value="CCS1">CCS1 (DC Rápida)</option>
-              <option value="CCS2">CCS2 (DC Rápida)</option>
-              <option value="CHAdeMO">CHAdeMO (DC Rápida)</option>
-              <option value="Tesla">Tesla (NEMA 14-50 / Tesla SC)</option>
-              <option value="GB/T">GB/T</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
-          <div class="stats-grid" style="margin-bottom:12px;">
-            <div class="form-group">
-              <label>Nivel</label>
-              <select id="station-level">
-                <option value="">Seleccionar</option>
-                <option value="Nivel 1">Nivel 1 (120V)</option>
-                <option value="Nivel 2">Nivel 2 (240V)</option>
-                <option value="DC Rápida">DC Rápida</option>
-              </select>
+          <div class="new-station-grid">
+            <div class="new-station-map-col">
+              <div id="station-map-picker" style="width:100%;height:100%;min-height:320px;border-radius:var(--radius-sm);cursor:crosshair;"></div>
             </div>
-            <div class="form-group">
-              <label>Potencia (kW)</label>
-              <input type="number" id="station-power" placeholder="Ej: 50" min="0" />
+            <div class="new-station-form-col">
+              <div class="form-group">
+                <label>Nombre de la estación</label>
+                <input type="text" id="station-name" placeholder="Ej: CFE Santiago" required />
+              </div>
+              <div class="form-group">
+                <label>Dirección</label>
+                <input type="text" id="station-address" placeholder="Dirección completa" />
+              </div>
+              <div class="new-station-row">
+                <div class="form-group" style="flex:1;">
+                  <label>Tipo de conector</label>
+                  <select id="station-connector">
+                    <option value="SAE J1772">SAE J1772 (Nivel 2)</option>
+                    <option value="CCS1">CCS1 (DC Rápida)</option>
+                    <option value="CCS2">CCS2 (DC Rápida)</option>
+                    <option value="CHAdeMO">CHAdeMO (DC Rápida)</option>
+                    <option value="Tesla">Tesla (NEMA 14-50 / Tesla SC)</option>
+                    <option value="GB/T">GB/T</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex:1;">
+                  <label>Nivel</label>
+                  <select id="station-level">
+                    <option value="">Seleccionar</option>
+                    <option value="Nivel 1">Nivel 1 (120V)</option>
+                    <option value="Nivel 2">Nivel 2 (240V)</option>
+                    <option value="DC Rápida">DC Rápida</option>
+                  </select>
+                </div>
+              </div>
+              <div class="new-station-row">
+                <div class="form-group" style="flex:1;">
+                  <label>Potencia (kW)</label>
+                  <input type="number" id="station-power" placeholder="Ej: 50" min="0" />
+                </div>
+                <div class="form-group" style="flex:1;">
+                  <label>Puntos</label>
+                  <input type="number" id="station-points" placeholder="Ej: 2" min="1" />
+                </div>
+                <div class="form-group" style="flex:1;">
+                  <label>Costo</label>
+                  <select id="station-cost">
+                    <option value="Gratis">Gratis</option>
+                    <option value="De pago">De pago</option>
+                    <option value="Desconocido">No sé</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Operador / Red</label>
+                <input type="text" id="station-operator" placeholder="Ej: CFE, Tesla, VEV" />
+              </div>
+              <div class="form-group">
+                <label>Descripción (opcional)</label>
+                <textarea id="station-description" placeholder="Detalles adicionales..." rows="2"></textarea>
+              </div>
+              <input type="hidden" id="station-lat" />
+              <input type="hidden" id="station-lng" />
+              <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Haz clic en el mapa para colocar el pin. Arrástralo para ajustar.</p>
+              <button type="submit" class="btn-primary" style="width:100%;">Enviar</button>
             </div>
           </div>
-          <div class="stats-grid" style="margin-bottom:12px;">
-            <div class="form-group">
-              <label>Puntos de carga</label>
-              <input type="number" id="station-points" placeholder="Ej: 2" min="1" />
-            </div>
-            <div class="form-group">
-              <label>Costo</label>
-              <select id="station-cost">
-                <option value="Gratis">Gratis</option>
-                <option value="De pago">De pago</option>
-                <option value="Desconocido">No sé</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Operador / Red</label>
-            <input type="text" id="station-operator" placeholder="Ej: CFE, Tesla, VEV" />
-          </div>
-          <div class="form-group">
-            <label>Descripción (opcional)</label>
-            <textarea id="station-description" placeholder="Detalles adicionales..." rows="2"></textarea>
-          </div>
-          <input type="hidden" id="station-lat" />
-          <input type="hidden" id="station-lng" />
-          <button type="submit" class="btn-primary">Enviar</button>
         </form>
       </div>
     </div>

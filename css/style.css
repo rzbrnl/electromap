@@ -1370,7 +1370,39 @@ body {
 }
 
 .modal-content-wide {
-  max-width: 440px;
+  max-width: 660px;
+}
+
+.new-station-grid {
+  display: flex;
+  gap: 20px;
+  min-height: 380px;
+}
+
+.new-station-map-col {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.new-station-form-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.new-station-row {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .new-station-grid { flex-direction: column; }
+  .new-station-map-col { min-height: 200px; }
+  .modal-content-wide { max-width: 95vw; }
 }
 
 .modal-header {
