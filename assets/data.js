@@ -102,6 +102,18 @@ var ChargerData = (function() {
     return R * c;
   }
 
+  function normalizeConnector(type) {
+    var t = (type || '').toLowerCase();
+    if (t.indexOf('tesla') !== -1) return 'Tesla';
+    if (t.indexOf('ccs') !== -1) return 'CCS';
+    if (t.indexOf('chademo') !== -1) return 'CHAdeMO';
+    if (t.indexOf('gb/t') !== -1 || t.indexOf('gb') !== -1) return 'GB/T';
+    if (t.indexOf('j1772') !== -1 || t.indexOf('sae j1772') !== -1 || t.indexOf('type 1') !== -1 || t.indexOf('type1') !== -1 || t.indexOf('nema') !== -1) return 'Type1';
+    if (t.indexOf('type 2') !== -1 || t.indexOf('type2') !== -1 || t.indexOf('mennekes') !== -1) return 'Type2';
+    if (t.indexOf('dc') !== -1 && t.indexOf('combo') !== -1) return 'CCS';
+    return type || '';
+  }
+
   function filterChargers(chargers, filters) {
     var totalConnectors = document.querySelectorAll('#filter-connectors input[type="checkbox"]').length;
     var totalLevels = document.querySelectorAll('#filter-levels input[type="checkbox"]').length;
@@ -112,7 +124,8 @@ var ChargerData = (function() {
       if (charger._approvedId) return true;
 
       if (filters.connectorTypes && filters.connectorTypes.length > 0 && filters.connectorTypes.length < totalConnectors) {
-        if (!charger.connections.some(function(conn) { return filters.connectorTypes.some(function(type) { return conn.type.includes(type); }); })) return false;
+        var chargerType = normalizeConnector(charger.connections[0] ? charger.connections[0].type : '');
+        if (filters.connectorTypes.indexOf(chargerType) === -1) return false;
       }
       if (filters.levels && filters.levels.length > 0 && filters.levels.length < totalLevels) {
         if (!charger.connections.some(function(conn) { return filters.levels.indexOf(String(conn.levelId)) !== -1; })) return false;
