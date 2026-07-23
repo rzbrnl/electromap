@@ -306,8 +306,8 @@
     document.getElementById('btn-report').addEventListener('click', showReportModal);
     document.getElementById('close-report').addEventListener('click', function() { document.getElementById('report-modal').classList.add('hidden'); });
     document.getElementById('report-form').addEventListener('submit', submitReport);
-    document.getElementById('btn-new-station').addEventListener('click', showNewStationModal);
-    document.getElementById('close-new-station').addEventListener('click', function() { document.getElementById('new-station-modal').classList.add('hidden'); });
+    document.getElementById('btn-add-station').addEventListener('click', showNewStationModal);
+    document.getElementById('close-new-station').addEventListener('click', function() { document.getElementById('new-station-modal').classList.add('hidden'); if (stationPickerMap) { stationPickerMap.remove(); stationPickerMap = null; } });
     document.getElementById('new-station-form').addEventListener('submit', submitNewStation);
 
     // Star rating
@@ -617,10 +617,46 @@
   }
 
   // === NEW STATION ===
+  var stationPickerMap = null;
+  var stationMarker = null;
+
   function showNewStationModal() {
     var user = getCurrentUser();
     if (!user) { showToast('Inicia sesión para reportar estaciones'); return; }
     document.getElementById('new-station-modal').classList.remove('hidden');
+    initStationPickerMap();
+  }
+
+  function initStationPickerMap() {
+    var centerLat = userLat || 27.4869;
+    var centerLng = userLng || -109.9409;
+
+    if (stationPickerMap) { stationPickerMap.remove(); stationPickerMap = null; }
+
+    stationPickerMap = L.map('station-map-picker', { zoomControl: false }).setView([centerLat, centerLng], 14);
+
+    var isDark = currentTheme === 'dark';
+    L.tileLayer(isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: ''
+    }).addTo(stationPickerMap);
+
+    stationMarker = L.marker([centerLat, centerLng], { draggable: true }).addTo(stationPickerMap);
+    document.getElementById('station-lat').value = centerLat;
+    document.getElementById('station-lng').value = centerLng;
+
+    stationMarker.on('dragend', function() {
+      var pos = stationMarker.getLatLng();
+      document.getElementById('station-lat').value = pos.lat;
+      document.getElementById('station-lng').value = pos.lng;
+    });
+
+    stationPickerMap.on('click', function(e) {
+      stationMarker.setLatLng(e.latlng);
+      document.getElementById('station-lat').value = e.latlng.lat;
+      document.getElementById('station-lng').value = e.latlng.lng;
+    });
+
+    setTimeout(function() { stationPickerMap.invalidateSize(); }, 200);
   }
 
   async function submitNewStation(e) {
@@ -638,14 +674,15 @@
       newStationName: name,
       newStationAddress: document.getElementById('station-address').value.trim(),
       newStationConnector: document.getElementById('station-connector').value.trim(),
-      newStationLat: userLat || null,
-      newStationLng: userLng || null
+      newStationLat: parseFloat(document.getElementById('station-lat').value) || null,
+      newStationLng: parseFloat(document.getElementById('station-lng').value) || null
     };
 
     var result = await SupabaseApp.addReport(data);
     if (result) {
       document.getElementById('new-station-modal').classList.add('hidden');
       document.getElementById('new-station-form').reset();
+      if (stationPickerMap) { stationPickerMap.remove(); stationPickerMap = null; }
       showToast('Nueva estación reportada. Gracias.');
     } else {
       showToast('Error al enviar');
