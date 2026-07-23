@@ -219,12 +219,15 @@ body {
 }
 
 .top-btn-accent {
+  width: auto;
+  height: auto;
+  border-radius: var(--radius-sm);
   background: var(--accent);
   color: white;
   font-weight: 600;
   font-size: 13px;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  white-space: nowrap;
 }
 
 .top-btn-accent:hover {
