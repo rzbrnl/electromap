@@ -20,13 +20,7 @@ module.exports = async function(req, res) {
   try {
     var url;
     if (type === 'autocomplete') {
-      url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=' + encodeURIComponent(q) + '&components=country:mx&key=' + googleKey + '&language=es';
-    } else if (type === 'details') {
-      var placeId = req.query.place_id || '';
-      url = 'https://maps.googleapis.com/maps/api/place/details/json?place_id=' + placeId + '&key=' + googleKey + '&fields=geometry,formatted_address&language=es';
-    } else if (type === 'geocode') {
-      var address = req.query.address || '';
-      url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + encodeURIComponent(address) + '&components=country:mx&key=' + googleKey + '&language=es';
+      url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + encodeURIComponent(q) + '&components=country:mx&key=' + googleKey + '&language=es';
     } else if (type === 'reverse') {
       var lat = req.query.lat || '';
       var lng = req.query.lng || '';
