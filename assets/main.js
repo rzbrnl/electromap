@@ -10,13 +10,14 @@
   var userLat = null;
   var userLng = null;
 
-  function init() {
+  async function init() {
     ChargerMap.init(onChargerSelect);
-    SupabaseApp.init();
+    await SupabaseApp.init();
     checkResetToken();
     loadSavedTheme();
     setupEventListeners();
     detectLocation();
+    checkAdminHeader();
   }
 
   function loadSavedTheme() {
@@ -435,7 +436,6 @@
 
     // Load favorites on init
     loadUserFavorites();
-    checkAdminHeader();
 
     var moveTimeout;
     ChargerMap.onMapEvent('moveend', function() {
@@ -1133,8 +1133,12 @@
     var btn = document.getElementById('btn-admin-header');
     if (!btn) return;
     if (user) {
-      var admin = await SupabaseApp.isAdmin(user.id);
-      btn.classList.toggle('hidden', !admin);
+      try {
+        var admin = await SupabaseApp.isAdmin(user.id);
+        btn.classList.toggle('hidden', !admin);
+      } catch (e) {
+        btn.classList.add('hidden');
+      }
     } else {
       btn.classList.add('hidden');
     }
