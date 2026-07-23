@@ -13,6 +13,7 @@
   function init() {
     ChargerMap.init(onChargerSelect);
     SupabaseApp.init();
+    loadGoogleKey();
     checkResetToken();
     loadSavedTheme();
     setupEventListeners();
@@ -969,16 +970,28 @@
     return connectors;
   }
 
+  var googleMapsKey = '';
+
+  async function loadGoogleKey() {
+    try {
+      var resp = await fetch('/api/config');
+      if (resp.ok) {
+        var config = await resp.json();
+        googleMapsKey = config.GOOGLE_MAPS_KEY || '';
+      }
+    } catch (e) {}
+  }
+
   function reverseGeocode(lat, lng, addressFieldId) {
-    if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
-      var geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
-        if (status === 'OK' && results[0]) {
+    if (!googleMapsKey) return;
+    fetch('https://maps.googleapis.com/maps/api/geocode/json?latlng=' + lat + ',' + lng + '&key=' + googleMapsKey + '&language=es')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status === 'OK' && data.results && data.results[0]) {
           var el = document.getElementById(addressFieldId);
-          if (el && !el.value) el.value = results[0].formatted_address;
+          if (el && !el.value) el.value = data.results[0].formatted_address;
         }
-      });
-    }
+      }).catch(function() {});
   }
 
   function addMapSearchBar(map, marker, addressFieldId, latFieldId, lngFieldId) {
@@ -988,28 +1001,86 @@
     searchDiv.style.cssText = 'position:absolute;top:8px;left:8px;right:8px;z-index:1000;';
     var input = document.createElement('input');
     input.type = 'text';
-    input.placeholder = 'Buscar dirección...';
+    input.placeholder = 'Buscar dirección en México...';
     input.style.cssText = 'width:100%;padding:8px 12px;border:none;border-radius:var(--radius-sm);font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.3);background:var(--surface);color:var(--text);font-family:inherit;';
     searchDiv.appendChild(input);
     mapContainer.insertBefore(searchDiv, mapContainer.firstChild);
 
-    // Try Google Places Autocomplete
-    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
-      var autocomplete = new google.maps.places.Autocomplete(input, { componentRestrictions: { country: 'mx' } });
-      autocomplete.addListener('place_changed', function() {
-        var place = autocomplete.getPlace();
-        if (place && place.geometry && place.geometry.location) {
-          var loc = place.geometry.location;
-          var lat = loc.lat();
-          var lng = loc.lng();
-          marker.setLatLng([lat, lng]);
-          map.setView([lat, lng], 16);
-          document.getElementById(latFieldId).value = lat;
-          document.getElementById(lngFieldId).value = lng;
-          document.getElementById(addressFieldId).value = place.formatted_address || place.name || '';
-        }
-      });
-    }
+    // Suggestions list
+    var suggestionsDiv = document.createElement('div');
+    suggestionsDiv.style.cssText = 'position:absolute;top:38px;left:0;right:0;background:var(--surface);border-radius:0 0 var(--radius-sm) var(--radius-sm);box-shadow:0 4px 12px rgba(0,0,0,0.3);display:none;z-index:1001;max-height:200px;overflow-y:auto;';
+    searchDiv.appendChild(suggestionsDiv);
+
+    var searchTimeout;
+    input.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      var query = input.value.trim();
+      if (query.length < 3) { suggestionsDiv.style.display = 'none'; return; }
+      searchTimeout = setTimeout(function() {
+        if (!googleMapsKey) return;
+        fetch('https://maps.googleapis.com/maps/api/place/autocomplete/json?input=' + encodeURIComponent(query) + '&components=country:mx&key=' + googleMapsKey + '&language=es')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
+              suggestionsDiv.innerHTML = data.predictions.map(function(p, i) {
+                return '<div class="suggestion-item" data-index="' + i + '" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);">' + p.description + '</div>';
+              }).join('');
+              suggestionsDiv.style.display = 'block';
+              suggestionsDiv.querySelectorAll('.suggestion-item').forEach(function(item) {
+                item.addEventListener('click', function() {
+                  var idx = parseInt(this.dataset.index);
+                  var prediction = data.predictions[idx];
+                  input.value = prediction.description;
+                  suggestionsDiv.style.display = 'none';
+                  // Get place details
+                  fetch('https://maps.googleapis.com/maps/api/place/details/json?place_id=' + prediction.place_id + '&key=' + googleMapsKey + '&fields=geometry,formatted_address')
+                    .then(function(r2) { return r2.json(); })
+                    .then(function(details) {
+                      if (details.status === 'OK' && details.result && details.result.geometry) {
+                        var loc = details.result.geometry.location;
+                        marker.setLatLng([loc.lat, loc.lng]);
+                        map.setView([loc.lat, loc.lng], 16);
+                        document.getElementById(latFieldId).value = loc.lat;
+                        document.getElementById(lngFieldId).value = loc.lng;
+                        document.getElementById(addressFieldId).value = details.result.formatted_address || prediction.description;
+                      }
+                    }).catch(function() {});
+                });
+              });
+            } else {
+              suggestionsDiv.style.display = 'none';
+            }
+          }).catch(function() { suggestionsDiv.style.display = 'none'; });
+      }, 300);
+    });
+
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!searchDiv.contains(e.target)) suggestionsDiv.style.display = 'none';
+    });
+
+    // Enter key geocodes the current text
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        suggestionsDiv.style.display = 'none';
+        if (!googleMapsKey || !input.value.trim()) return;
+        fetch('https://maps.googleapis.com/maps/api/geocode/json?address=' + encodeURIComponent(input.value.trim()) + '&components=country:mx&key=' + googleMapsKey + '&language=es')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.status === 'OK' && data.results && data.results[0]) {
+              var loc = data.results[0].geometry.location;
+              marker.setLatLng([loc.lat, loc.lng]);
+              map.setView([loc.lat, loc.lng], 16);
+              document.getElementById(latFieldId).value = loc.lat;
+              document.getElementById(lngFieldId).value = loc.lng;
+              document.getElementById(addressFieldId).value = data.results[0].formatted_address;
+            } else {
+              showToast('No se encontró la dirección');
+            }
+          }).catch(function() {});
+      }
+    });
   }
 
   function createStationIcon() {
