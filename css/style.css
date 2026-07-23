@@ -220,6 +220,16 @@ body {
   color: #212529;
 }
 
+[data-theme="light"] button.top-btn-accent {
+  background: #22c55e !important;
+  color: white !important;
+}
+
+[data-theme="light"] button.top-btn-accent:hover {
+  background: #16a34a !important;
+  color: white !important;
+}
+
 .top-btn:hover {
   background: var(--surface);
   color: var(--text);
@@ -230,22 +240,23 @@ body {
   color: var(--accent);
 }
 
-.top-btn-accent {
+button.top-btn-accent {
   width: auto;
   height: auto;
   border-radius: var(--radius-sm);
-  background: #22c55e;
-  color: white;
+  background: #22c55e !important;
+  color: white !important;
   font-weight: 600;
   font-size: 13px;
   padding: 8px 14px;
   white-space: nowrap;
   gap: 6px;
+  border: none !important;
 }
 
-.top-btn-accent:hover {
-  background: #4ade80;
-  color: white;
+button.top-btn-accent:hover {
+  background: #16a34a !important;
+  color: white !important;
 }
 
 /* Map */
