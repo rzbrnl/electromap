@@ -128,12 +128,19 @@ var ChargerData = (function() {
         if (filters.connectorTypes.indexOf(chargerType) === -1) return false;
       }
       if (filters.levels && filters.levels.length > 0 && filters.levels.length < totalLevels) {
-        if (!charger.connections.some(function(conn) { return filters.levels.indexOf(String(conn.levelId)) !== -1; })) return false;
+        var hasMatch = charger.connections.some(function(conn) {
+          return filters.levels.indexOf(String(conn.levelId)) !== -1;
+        });
+        if (!hasMatch) return false;
       }
       if (filters.status && filters.status.length > 0 && filters.status.length < totalStatus) {
-        var statusMap = { 'operational': [50, 10, 30], 'non-operational': [20, 30, 150], 'unknown': [0, 75, 999] };
-        var sid = charger.statusId || 0;
-        if (!filters.status.some(function(s) { return (statusMap[s] || []).indexOf(sid) !== -1; })) return false;
+        var sId = charger.statusId || 0;
+        var isOp = sId === 50 || sId === 10 || sId === 30;
+        var isNon = sId === 20 || sId === 150;
+        var isUnk = sId === 0 || sId === 75 || sId === 999;
+        if (filters.status.indexOf('operational') === -1 && isOp) return false;
+        if (filters.status.indexOf('non-operational') === -1 && isNon) return false;
+        if (filters.status.indexOf('unknown') === -1 && isUnk) return false;
       }
       return true;
     });

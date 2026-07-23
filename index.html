@@ -25,7 +25,7 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
     />
-    <link rel="stylesheet" href="css/style.css?v=em64" />
+    <link rel="stylesheet" href="css/style.css?v=em65" />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'><path d='M7 2v11h3v9l7-12h-4l4-8z'/></svg>"
@@ -560,13 +560,6 @@
             </label>
           </div>
         </div>
-        <div class="filter-group">
-          <label class="filter-label">Unidad de Distancia</label>
-          <div class="unit-toggle">
-            <button class="unit-btn active" id="btn-unit-km" data-unit="km">km</button>
-            <button class="unit-btn" id="btn-unit-mi" data-unit="mi">mi</button>
-          </div>
-        </div>
         <button class="apply-filters-btn" id="btn-apply-filters">
           Aplicar Filtros
         </button>
@@ -829,6 +822,14 @@
               <label>Operador</label>
               <input type="text" id="edit-charger-operator" />
             </div>
+            <div class="form-group">
+              <label>Estado</label>
+              <select id="edit-charger-status">
+                <option value="50">Operativo</option>
+                <option value="20">No operativo</option>
+                <option value="0">Desconocido</option>
+              </select>
+            </div>
             <input type="hidden" id="edit-charger-lat" />
             <input type="hidden" id="edit-charger-lng" />
             <button class="btn-primary" id="btn-save-charger-edit" style="width:100%;">Guardar cambios</button>
@@ -851,9 +852,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="assets/data.js?v=em64"></script>
-    <script src="assets/supabase.js?v=em64"></script>
-    <script src="assets/map.js?v=em64"></script>
-    <script src="assets/main.js?v=em64"></script>
+    <script src="assets/data.js?v=em65"></script>
+    <script src="assets/supabase.js?v=em65"></script>
+    <script src="assets/map.js?v=em65"></script>
+    <script src="assets/main.js?v=em65"></script>
   </body>
 </html>

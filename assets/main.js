@@ -4,7 +4,7 @@
   var allChargers = [];
   var filteredChargers = [];
   var currentTheme = 'dark';
-  var currentUnit = localStorage.getItem('em-unit') || 'km';
+  var currentUnit = 'km';
   var filtersVisible = false;
   var legendVisible = false;
   var userLat = null;
@@ -15,7 +15,6 @@
     SupabaseApp.init();
     checkResetToken();
     loadSavedTheme();
-    loadSavedUnit();
     setupEventListeners();
     detectLocation();
   }
@@ -26,23 +25,9 @@
     applyTheme(currentTheme);
   }
 
-  function loadSavedUnit() {
-    document.getElementById('btn-unit-km').classList.toggle('active', currentUnit === 'km');
-    document.getElementById('btn-unit-mi').classList.toggle('active', currentUnit === 'mi');
-  }
-
-  function setUnit(unit) {
-    currentUnit = unit;
-    localStorage.setItem('em-unit', currentUnit);
-    document.getElementById('btn-unit-km').classList.toggle('active', unit === 'km');
-    document.getElementById('btn-unit-mi').classList.toggle('active', unit === 'mi');
-    updateStats();
-  }
-
   function formatDistance(distance) {
     if (!distance) return 'N/A';
-    var val = currentUnit === 'mi' ? distance * 0.621371 : distance;
-    return val.toFixed(1) + ' ' + currentUnit;
+    return distance.toFixed(1) + ' km';
   }
 
   function detectLocation() {
@@ -89,7 +74,7 @@
                 id: 'approved-' + s.id, name: s.name, address: s.address || '',
                 lat: s.lat, lng: s.lng, country: 'México',
                 operator: s.operator || 'Comunidad', network: s.operator || 'Comunidad',
-                status: s.status || 'Operational', statusId: 50, usage: 'Público',
+                status: s.status || 'Operational', statusId: s.status_id || 50, usage: 'Público',
                 cost: s.cost || 'Desconocido', numberOfPoints: s.points || 1,
                 photos: [],
                 connections: [{ type: s.connector || 'N/A', typeId: 0, powerKW: s.power_kw || 0, level: s.level || 'N/A', levelId: levelId }],
@@ -109,6 +94,7 @@
             if (o.operator) { c.operator = o.operator; c.network = o.operator; }
             if (o.cost) c.cost = o.cost;
             if (o.points) c.numberOfPoints = o.points;
+            if (o.status_id != null) c.statusId = o.status_id;
             c._approvedId = o.id;
             var origConn = c.connections[0] || {};
             c.connections = [{
@@ -342,8 +328,6 @@
 
   function setupEventListeners() {
     document.getElementById('btn-theme').addEventListener('click', toggleTheme);
-    document.getElementById('btn-unit-km').addEventListener('click', function() { setUnit('km'); });
-    document.getElementById('btn-unit-mi').addEventListener('click', function() { setUnit('mi'); });
     document.getElementById('btn-location').addEventListener('click', goToMyLocation);
     document.getElementById('btn-filters').addEventListener('click', toggleFilters);
     document.getElementById('btn-legend').addEventListener('click', toggleLegend);
@@ -1201,6 +1185,9 @@
     document.getElementById('edit-charger-points').value = charger.numberOfPoints || '';
     document.getElementById('edit-charger-cost').value = charger.cost && charger.cost !== 'Desconocido' ? charger.cost : '';
     document.getElementById('edit-charger-operator').value = charger.operator && charger.operator !== 'CFE' ? charger.operator : '';
+    var statusSel = document.getElementById('edit-charger-status');
+    var sid = charger.statusId || 50;
+    statusSel.value = (sid === 50 || sid === 10 || sid === 30) ? '50' : (sid === 20 || sid === 150) ? '20' : '0';
     document.getElementById('edit-charger-lat').value = charger.lat;
     document.getElementById('edit-charger-lng').value = charger.lng;
 
@@ -1243,7 +1230,9 @@
       points: parseInt(document.getElementById('edit-charger-points').value) || currentCharger.numberOfPoints || null,
       cost: document.getElementById('edit-charger-cost').value.trim() || currentCharger.cost || null,
       operator: document.getElementById('edit-charger-operator').value.trim() || currentCharger.operator || null,
-      charger_id: chargerId
+      charger_id: chargerId,
+      status: document.getElementById('edit-charger-status').value === '50' ? 'Operational' : document.getElementById('edit-charger-status').value === '20' ? 'Non-operational' : 'Unknown',
+      statusId: parseInt(document.getElementById('edit-charger-status').value)
     };
 
     var result;
@@ -1576,6 +1565,11 @@
             '<div class="form-group" style="flex:1;"><label>Costo</label><input type="text" id="edit-st-cost" value="' + (station.cost || '') + '" /></div>' +
           '</div>' +
           '<div class="form-group"><label>Operador</label><input type="text" id="edit-st-operator" value="' + (station.operator || '') + '" /></div>' +
+          '<div class="form-group"><label>Estado</label><select id="edit-st-status">' +
+            '<option value="50"' + ((station.status_id || 50) === 50 ? ' selected' : '') + '>Operativo</option>' +
+            '<option value="20"' + (station.status_id === 20 ? ' selected' : '') + '>No operativo</option>' +
+            '<option value="0"' + (station.status_id === 0 ? ' selected' : '') + '>Desconocido</option>' +
+          '</select></div>' +
           '<input type="hidden" id="edit-st-lat" value="' + (station.lat || '') + '" />' +
           '<input type="hidden" id="edit-st-lng" value="' + (station.lng || '') + '" />' +
           '<button class="btn-primary" id="btn-save-station" style="width:100%;margin-top:8px;">Guardar cambios</button>' +
@@ -1611,7 +1605,8 @@
             cost: document.getElementById('edit-st-cost').value || null,
             operator: document.getElementById('edit-st-operator').value || null,
             lat: parseFloat(document.getElementById('edit-st-lat').value) || station.lat,
-            lng: parseFloat(document.getElementById('edit-st-lng').value) || station.lng
+            lng: parseFloat(document.getElementById('edit-st-lng').value) || station.lng,
+            status_id: parseInt(document.getElementById('edit-st-status').value) || 50
           });
           showToast('Estación actualizada');
           ChargerData.clearCache && ChargerData.clearCache();
