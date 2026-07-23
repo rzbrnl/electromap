@@ -72,14 +72,18 @@
               // Pure community station — parse connector arrays
               var connTypes = [];
               var lvlNames = [];
+              var powerArr = [];
               try { connTypes = JSON.parse(s.connector); } catch(e) { connTypes = s.connector ? [s.connector] : []; }
               try { lvlNames = JSON.parse(s.level); } catch(e) { lvlNames = s.level ? [s.level] : []; }
+              try { powerArr = JSON.parse(s.power_kw); } catch(e) { powerArr = s.power_kw != null ? [s.power_kw] : []; }
               if (!Array.isArray(connTypes)) connTypes = [connTypes];
               if (!Array.isArray(lvlNames)) lvlNames = [lvlNames];
+              if (!Array.isArray(powerArr)) powerArr = [powerArr];
               var connections = connTypes.map(function(ct, i) {
                 var lvl = lvlNames[i] || lvlNames[0] || 'N/A';
                 var levelId = lvl === 'DC Rápida' ? 3 : lvl === 'Nivel 2' ? 2 : 1;
-                return { type: ct || 'N/A', typeId: 0, powerKW: s.power_kw || 0, level: lvl, levelId: levelId };
+                var pw = powerArr[i] != null ? powerArr[i] : (powerArr[0] != null ? powerArr[0] : 0);
+                return { type: ct || 'N/A', typeId: 0, powerKW: pw, level: lvl, levelId: levelId };
               });
               if (connections.length === 0) connections = [{ type: 'N/A', typeId: 0, powerKW: 0, level: 'N/A', levelId: 1 }];
               communityChargers.push({
@@ -168,7 +172,7 @@
     else { sb.classList.add('unknown'); st.textContent = 'Desconocido'; }
 
     document.getElementById('charger-connectors').textContent = charger.connections.map(function(c) { return c.type; }).filter(function(v, i, a) { return a.indexOf(v) === i; }).join(', ') || 'N/A';
-    document.getElementById('charger-power').textContent = charger.connections.filter(function(c) { return c.powerKW; }).map(function(c) { return c.powerKW + ' kW'; }).join(', ') || 'N/A';
+    document.getElementById('charger-power').textContent = charger.connections.map(function(c) { return c.powerKW ? c.powerKW + ' kW' : ''; }).filter(Boolean).join(', ') || 'N/A';
     document.getElementById('charger-level').textContent = charger.connections.map(function(c) { return c.level; }).filter(function(v, i, a) { return a.indexOf(v) === i; }).join(', ') || 'N/A';
     document.getElementById('charger-points').textContent = charger.numberOfPoints || 'N/A';
     document.getElementById('charger-cost').textContent = formatCost(charger.cost);
@@ -967,7 +971,8 @@
         var row = document.createElement('div');
         row.className = 'connector-row new-station-row';
         row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
-          '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>';
+          '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>' +
+          '<div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" /></div>';
         container.appendChild(row);
       }
     }
@@ -979,7 +984,8 @@
     rows.forEach(function(row) {
       connectors.push({
         type: row.querySelector('.conn-type').value,
-        level: row.querySelector('.conn-level').value
+        level: row.querySelector('.conn-level').value,
+        power: parseFloat(row.querySelector('.conn-power').value) || null
       });
     });
     return connectors;
@@ -1083,6 +1089,7 @@
     var mainLevel = connectors.length > 0 ? connectors[0].level : null;
     var connectorJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.type; })) : mainConnector;
     var levelJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.level; })) : mainLevel;
+    var powerJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.power; })) : (connectors[0] ? connectors[0].power : null);
 
     var power = document.getElementById('station-power').value;
     var points = document.getElementById('station-points').value;
@@ -1110,7 +1117,7 @@
       newStationLat: parseFloat(document.getElementById('station-lat').value) || null,
       newStationLng: parseFloat(document.getElementById('station-lng').value) || null,
       level: levelJson,
-      power: power ? parseFloat(power) : null,
+      power: powerJson,
       points: points ? parseInt(points) : null,
       cost: cost,
       operator: operator,
@@ -1473,7 +1480,8 @@
         var row = document.createElement('div');
         row.className = 'connector-row new-station-row';
         row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
-          '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>';
+          '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>' +
+          '<div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" /></div>';
         container.appendChild(row);
       }
     }
@@ -1485,10 +1493,11 @@
     rows.forEach(function(row) {
       connectors.push({
         type: row.querySelector('.conn-type').value,
-        level: row.querySelector('.conn-level').value
+        level: row.querySelector('.conn-level').value,
+        power: parseFloat(row.querySelector('.conn-power').value) || null
       });
     });
-    return connectors.length > 0 ? connectors : [{ type: null, level: null }];
+    return connectors.length > 0 ? connectors : [{ type: null, level: null, power: null }];
   }
 
   // === ADMIN DASHBOARD ===
