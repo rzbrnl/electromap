@@ -13,6 +13,7 @@
   function init() {
     ChargerMap.init(onChargerSelect);
     SupabaseApp.init();
+    checkResetToken();
     loadSavedTheme();
     loadSavedUnit();
     setupEventListeners();
@@ -267,6 +268,7 @@
     document.getElementById('auth-form').addEventListener('submit', handleLogin);
     document.getElementById('signup-form').addEventListener('submit', handleSignup);
     document.getElementById('forgot-form').addEventListener('submit', handleForgotPassword);
+    document.getElementById('reset-form').addEventListener('submit', handleResetPassword);
     document.getElementById('toggle-auth').addEventListener('click', function(e) { e.preventDefault(); showAuthView('signup'); });
     document.getElementById('toggle-to-login').addEventListener('click', function(e) { e.preventDefault(); showAuthView('login'); });
     document.getElementById('forgot-password').addEventListener('click', function(e) { e.preventDefault(); showAuthView('forgot'); });
@@ -275,6 +277,42 @@
     document.getElementById('signup-confirm').addEventListener('input', function() {
       var pw = document.getElementById('signup-password').value;
       var el = document.getElementById('password-match');
+      if (!this.value) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      if (this.value === pw) { el.textContent = 'Las contraseñas coinciden'; el.className = 'password-match valid'; }
+      else { el.textContent = 'Las contraseñas no coinciden'; el.className = 'password-match invalid'; }
+    });
+
+    // Reset password strength + match
+    document.getElementById('reset-password').addEventListener('input', function() {
+      var pw = this.value;
+      var bar = document.getElementById('reset-strength-fill');
+      var text = document.getElementById('reset-strength-text');
+      var container = document.getElementById('reset-strength');
+      if (!pw) { container.classList.add('hidden'); return; }
+      container.classList.remove('hidden');
+      var score = 0;
+      if (pw.length >= 6) score++;
+      if (pw.length >= 10) score++;
+      if (/[A-Z]/.test(pw)) score++;
+      if (/[0-9]/.test(pw)) score++;
+      if (/[^A-Za-z0-9]/.test(pw)) score++;
+      var levels = [
+        { width: '20%', color: '#ef4444', label: 'Muy débil' },
+        { width: '40%', color: '#f97316', label: 'Débil' },
+        { width: '60%', color: '#f59e0b', label: 'Regular' },
+        { width: '80%', color: '#22c55e', label: 'Buena' },
+        { width: '100%', color: '#16a34a', label: 'Muy fuerte' }
+      ];
+      var level = levels[Math.min(score, 4)];
+      bar.style.width = level.width;
+      bar.style.background = level.color;
+      text.textContent = level.label;
+      text.style.color = level.color;
+    });
+    document.getElementById('reset-confirm').addEventListener('input', function() {
+      var pw = document.getElementById('reset-password').value;
+      var el = document.getElementById('reset-match');
       if (!this.value) { el.classList.add('hidden'); return; }
       el.classList.remove('hidden');
       if (this.value === pw) { el.textContent = 'Las contraseñas coinciden'; el.className = 'password-match valid'; }
@@ -322,9 +360,11 @@
     document.getElementById('auth-form').classList.add('hidden');
     document.getElementById('signup-form').classList.add('hidden');
     document.getElementById('forgot-form').classList.add('hidden');
+    document.getElementById('reset-form').classList.add('hidden');
     document.getElementById('auth-error').classList.add('hidden');
     document.getElementById('signup-error').classList.add('hidden');
     document.getElementById('forgot-error').classList.add('hidden');
+    document.getElementById('reset-error').classList.add('hidden');
     if (view === 'login') {
       document.getElementById('auth-form').classList.remove('hidden');
       document.getElementById('auth-title').textContent = 'Iniciar sesión';
@@ -337,6 +377,10 @@
       document.getElementById('forgot-form').classList.remove('hidden');
       document.getElementById('auth-title').textContent = 'Recuperar contraseña';
       document.getElementById('auth-subtitle').textContent = 'Te enviaremos un enlace para restablecerla';
+    } else if (view === 'reset') {
+      document.getElementById('reset-form').classList.remove('hidden');
+      document.getElementById('auth-title').textContent = 'Nueva contraseña';
+      document.getElementById('auth-subtitle').textContent = 'Elige una contraseña segura';
     }
   }
 
@@ -988,6 +1032,48 @@
     }
     submitBtn.textContent = 'Enviar enlace';
     submitBtn.disabled = false;
+  }
+
+  async function handleResetPassword(e) {
+    e.preventDefault();
+    var password = document.getElementById('reset-password').value;
+    var confirm = document.getElementById('reset-confirm').value;
+    var errorEl = document.getElementById('reset-error');
+    var submitBtn = document.getElementById('reset-submit');
+    errorEl.classList.add('hidden');
+    if (password !== confirm) { errorEl.textContent = 'Las contraseñas no coinciden'; errorEl.classList.remove('hidden'); return; }
+    if (password.length < 6) { errorEl.textContent = 'Mínimo 6 caracteres'; errorEl.classList.remove('hidden'); return; }
+    submitBtn.textContent = 'Guardando...';
+    submitBtn.disabled = true;
+    try {
+      var client = SupabaseApp.getClient();
+      var { error } = await client.auth.updateUser({ password: password });
+      if (error) {
+        errorEl.textContent = error.message || 'Error al actualizar contraseña';
+        errorEl.classList.remove('hidden');
+      } else {
+        showToast('Contraseña actualizada correctamente');
+        window.location.hash = '';
+        hideAuthModal();
+        window.location.reload();
+      }
+    } catch (err) {
+      errorEl.textContent = err.message || 'Error inesperado';
+      errorEl.classList.remove('hidden');
+    }
+    submitBtn.textContent = 'Guardar contraseña';
+    submitBtn.disabled = false;
+  }
+
+  function checkResetToken() {
+    var hash = window.location.hash;
+    if (hash && (hash.includes('access_token') || hash.includes('type=recovery'))) {
+      showAuthView('reset');
+      document.getElementById('auth-title').textContent = 'Nueva contraseña';
+      document.getElementById('auth-subtitle').textContent = 'Elige una contraseña segura';
+      document.getElementById('auth-modal').classList.remove('hidden');
+      window.location.hash = '';
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

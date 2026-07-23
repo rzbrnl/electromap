@@ -25,7 +25,7 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
     />
-    <link rel="stylesheet" href="css/style.css?v=em53" />
+    <link rel="stylesheet" href="css/style.css?v=em54" />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'><path d='M7 2v11h3v9l7-12h-4l4-8z'/></svg>"
@@ -640,6 +640,25 @@
           </p>
           <div id="forgot-error" class="error-msg hidden"></div>
         </form>
+
+        <!-- Reset Password Form -->
+        <form id="reset-form" class="hidden">
+          <div class="form-group">
+            <label for="reset-password">Nueva contraseña</label>
+            <input type="password" id="reset-password" placeholder="Mínimo 6 caracteres" required minlength="6" />
+            <div id="reset-strength" class="password-strength hidden">
+              <div class="strength-bar"><div class="strength-fill" id="reset-strength-fill"></div></div>
+              <span class="strength-text" id="reset-strength-text"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reset-confirm">Confirmar contraseña</label>
+            <input type="password" id="reset-confirm" placeholder="Repite tu contraseña" required minlength="6" />
+            <div id="reset-match" class="password-match hidden"></div>
+          </div>
+          <button type="submit" class="btn-primary" id="reset-submit">Guardar contraseña</button>
+          <div id="reset-error" class="error-msg hidden"></div>
+        </form>
       </div>
     </div>
 
@@ -754,9 +773,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="assets/data.js?v=em53"></script>
-    <script src="assets/supabase.js?v=em53"></script>
-    <script src="assets/map.js?v=em53"></script>
-    <script src="assets/main.js?v=em53"></script>
+    <script src="assets/data.js?v=em54"></script>
+    <script src="assets/supabase.js?v=em54"></script>
+    <script src="assets/map.js?v=em54"></script>
+    <script src="assets/main.js?v=em54"></script>
   </body>
 </html>
