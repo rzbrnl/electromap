@@ -111,14 +111,23 @@
             if (o.points) c.numberOfPoints = o.points;
             if (o.status_id != null) c.statusId = o.status_id;
             c._approvedId = o.id;
-            var origConn = c.connections[0] || {};
-            c.connections = [{
-              type: o.connector || origConn.type || 'N/A',
-              typeId: 0,
-              powerKW: o.power_kw != null ? o.power_kw : (origConn.powerKW || 0),
-              level: o.level || origConn.level || 'N/A',
-              levelId: o.level === 'DC Rápida' ? 3 : o.level === 'Nivel 2' ? 2 : (origConn.levelId || 2)
-            }];
+            // Parse connector/level/power arrays for overrides
+            var oConnTypes = [];
+            var oLvlNames = [];
+            var oPowerArr = [];
+            try { oConnTypes = JSON.parse(o.connector); } catch(e) { oConnTypes = o.connector ? [o.connector] : []; }
+            try { oLvlNames = JSON.parse(o.level); } catch(e) { oLvlNames = o.level ? [o.level] : []; }
+            try { oPowerArr = JSON.parse(o.power_kw); } catch(e) { oPowerArr = o.power_kw != null ? [o.power_kw] : []; }
+            if (!Array.isArray(oConnTypes)) oConnTypes = [oConnTypes];
+            if (!Array.isArray(oLvlNames)) oLvlNames = [oLvlNames];
+            if (!Array.isArray(oPowerArr)) oPowerArr = [oPowerArr];
+            c.connections = oConnTypes.map(function(ct, i) {
+              var lvl = oLvlNames[i] || oLvlNames[0] || 'N/A';
+              var pw = oPowerArr[i] != null ? oPowerArr[i] : (oPowerArr[0] != null ? oPowerArr[0] : 0);
+              var levelId = lvl === 'DC Rápida' ? 3 : lvl === 'Nivel 2' ? 2 : 1;
+              return { type: ct || 'N/A', typeId: 0, powerKW: pw, level: lvl, levelId: levelId };
+            });
+            if (c.connections.length === 0) c.connections = [{ type: 'N/A', typeId: 0, powerKW: 0, level: 'N/A', levelId: 1 }];
           });
           chargers = chargers.concat(communityChargers);
           console.log('[ElectroMap] Approved:', approved.length, 'Community:', communityChargers.length, 'Overrides:', Object.keys(overrideMap).length);
