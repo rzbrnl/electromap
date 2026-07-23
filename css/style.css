@@ -228,6 +228,7 @@ body {
   font-size: 13px;
   padding: 8px 14px;
   white-space: nowrap;
+  gap: 6px;
 }
 
 .top-btn-accent:hover {
