@@ -241,6 +241,24 @@
     }).catch(function() { showToast('No se pudo obtener tu ubicación'); });
   }
 
+  function customConfirm(message) {
+    return new Promise(function(resolve) {
+      var modal = document.getElementById('confirm-modal');
+      document.getElementById('confirm-message').textContent = message;
+      modal.classList.remove('hidden');
+      function close(result) {
+        modal.classList.add('hidden');
+        document.getElementById('confirm-ok').removeEventListener('click', onOk);
+        document.getElementById('confirm-cancel').removeEventListener('click', onCancel);
+        resolve(result);
+      }
+      function onOk() { close(true); }
+      function onCancel() { close(false); }
+      document.getElementById('confirm-ok').addEventListener('click', onOk);
+      document.getElementById('confirm-cancel').addEventListener('click', onCancel);
+    });
+  }
+
   function showToast(message) {
     var existing = document.querySelector('.toast');
     if (existing) existing.remove();
@@ -478,7 +496,7 @@
   }
 
   async function deleteComment(commentId) {
-    if (!confirm('¿Eliminar esta reseña?')) return;
+    if (!await customConfirm('¿Eliminar esta reseña?')) return;
     var ok = await SupabaseApp.deleteComment(commentId);
     if (ok) {
       showToast('Reseña eliminada');
@@ -586,7 +604,7 @@
     grid.querySelectorAll('.photo-delete-btn').forEach(function(btn) {
       btn.addEventListener('click', async function(e) {
         e.stopPropagation();
-        if (!confirm('¿Eliminar esta foto?')) return;
+        if (!await customConfirm('¿Eliminar esta foto?')) return;
         var ok = await SupabaseApp.deletePhoto(this.dataset.id);
         if (ok) {
           showToast('Foto eliminada');
@@ -613,7 +631,7 @@
     container.querySelectorAll('.photo-delete-btn').forEach(function(btn) {
       btn.addEventListener('click', async function(e) {
         e.stopPropagation();
-        if (!confirm('¿Eliminar esta foto?')) return;
+        if (!await customConfirm('¿Eliminar esta foto?')) return;
         var ok = await SupabaseApp.deletePhoto(this.dataset.id);
         if (ok) { showToast('Foto eliminada'); loadProfilePhotos(userId); }
       });
