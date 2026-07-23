@@ -66,68 +66,58 @@
     var radius = ChargerMap.getRadius();
     updateStatus('Cargando...');
     return ChargerData.fetchChargers(center.lat, center.lng, radius, 100).then(async function(chargers) {
-      // Merge CFE stations with approved community stations
       try {
         var approved = await SupabaseApp.getApprovedStations();
         if (approved && approved.length > 0) {
-          // Build override map for CFE stations
+          // Build name->CFE index for matching old entries
+          var cfeByName = {};
+          chargers.forEach(function(c) { cfeByName[c.name] = c; });
+
           var overrideMap = {};
           var communityChargers = [];
           approved.forEach(function(s) {
             if (s.charger_id) {
+              // Explicit override by charger_id
               overrideMap[s.charger_id] = s;
+            } else if (cfeByName[s.name]) {
+              // Old entry without charger_id but matches a CFE station name — treat as override
+              overrideMap[cfeByName[s.name].id] = s;
             } else {
+              // Pure community station
               var levelId = s.level === 'DC Rápida' ? 3 : s.level === 'Nivel 2' ? 2 : 1;
               communityChargers.push({
-                id: 'approved-' + s.id,
-                name: s.name,
-                address: s.address || '',
-                lat: s.lat,
-                lng: s.lng,
-                country: 'México',
-                operator: s.operator || 'Comunidad',
-                network: s.operator || 'Comunidad',
-                status: s.status || 'Operational',
-                statusId: 50,
-                usage: 'Público',
-                cost: s.cost || 'Desconocido',
-                numberOfPoints: s.points || 1,
+                id: 'approved-' + s.id, name: s.name, address: s.address || '',
+                lat: s.lat, lng: s.lng, country: 'México',
+                operator: s.operator || 'Comunidad', network: s.operator || 'Comunidad',
+                status: s.status || 'Operational', statusId: 50, usage: 'Público',
+                cost: s.cost || 'Desconocido', numberOfPoints: s.points || 1,
                 photos: [],
-                connections: [{
-                  type: s.connector || 'N/A',
-                  typeId: 0,
-                  powerKW: s.power_kw || 0,
-                  level: s.level || 'N/A',
-                  levelId: levelId
-                }],
-                numConnections: s.points || 1,
-                _approvedId: s.id
+                connections: [{ type: s.connector || 'N/A', typeId: 0, powerKW: s.power_kw || 0, level: s.level || 'N/A', levelId: levelId }],
+                numConnections: s.points || 1, _approvedId: s.id
               });
             }
           });
-          // Apply CFE overrides
+
+          // Apply overrides to CFE chargers
           chargers.forEach(function(c) {
             var o = overrideMap[c.id];
-            if (o) {
-              c.name = o.name || c.name;
-              c.address = o.address || c.address;
-              c.lat = o.lat || c.lat;
-              c.lng = o.lng || c.lng;
-              c.operator = o.operator || c.operator;
-              c.network = o.operator || c.network;
-              c.cost = o.cost || c.cost;
-              c.numberOfPoints = o.points || c.numberOfPoints;
-              c._approvedId = o.id;
-              if (o.connector || o.level || o.power_kw) {
-                c.connections = [{
-                  type: o.connector || c.connections[0].type,
-                  typeId: 0,
-                  powerKW: o.power_kw || c.connections[0].powerKW,
-                  level: o.level || c.connections[0].level,
-                  levelId: o.level === 'DC Rápida' ? 3 : o.level === 'Nivel 2' ? 2 : c.connections[0].levelId
-                }];
-              }
-            }
+            if (!o) return;
+            c.name = o.name || c.name;
+            c.address = o.address || c.address;
+            c.lat = o.lat || c.lat;
+            c.lng = o.lng || c.lng;
+            if (o.operator) { c.operator = o.operator; c.network = o.operator; }
+            if (o.cost) c.cost = o.cost;
+            if (o.points) c.numberOfPoints = o.points;
+            c._approvedId = o.id;
+            var origConn = c.connections[0] || {};
+            c.connections = [{
+              type: o.connector || origConn.type || 'N/A',
+              typeId: 0,
+              powerKW: o.power_kw != null ? o.power_kw : (origConn.powerKW || 0),
+              level: o.level || origConn.level || 'N/A',
+              levelId: o.level === 'DC Rápida' ? 3 : o.level === 'Nivel 2' ? 2 : (origConn.levelId || 2)
+            }];
           });
           chargers = chargers.concat(communityChargers);
         }
@@ -1201,12 +1191,14 @@
     document.getElementById('edit-station-modal').classList.remove('hidden');
     document.getElementById('edit-charger-name').value = charger.name || '';
     document.getElementById('edit-charger-address').value = charger.address || '';
-    document.getElementById('edit-charger-connector').value = charger.connections && charger.connections[0] ? charger.connections[0].type : '';
-    document.getElementById('edit-charger-level').value = charger.connections && charger.connections[0] ? charger.connections[0].level : '';
-    document.getElementById('edit-charger-power').value = charger.connections && charger.connections[0] ? charger.connections[0].powerKW || '' : '';
+
+    var conn = charger.connections && charger.connections[0] ? charger.connections[0] : {};
+    document.getElementById('edit-charger-connector').value = conn.type && conn.type !== 'N/A' ? conn.type : '';
+    document.getElementById('edit-charger-level').value = conn.level && conn.level !== 'N/A' ? conn.level : '';
+    document.getElementById('edit-charger-power').value = conn.powerKW || '';
     document.getElementById('edit-charger-points').value = charger.numberOfPoints || '';
-    document.getElementById('edit-charger-cost').value = charger.cost || '';
-    document.getElementById('edit-charger-operator').value = charger.operator || '';
+    document.getElementById('edit-charger-cost').value = charger.cost && charger.cost !== 'Desconocido' ? charger.cost : '';
+    document.getElementById('edit-charger-operator').value = charger.operator && charger.operator !== 'CFE' ? charger.operator : '';
     document.getElementById('edit-charger-lat').value = charger.lat;
     document.getElementById('edit-charger-lng').value = charger.lng;
 
@@ -1236,18 +1228,19 @@
     if (!name) { showToast('El nombre es requerido'); return; }
 
     var existingApprovedId = currentCharger._approvedId || null;
+    var origConn = currentCharger.connections && currentCharger.connections[0] ? currentCharger.connections[0] : {};
 
     var data = {
       name: name,
-      address: document.getElementById('edit-charger-address').value.trim(),
-      lat: parseFloat(document.getElementById('edit-charger-lat').value),
-      lng: parseFloat(document.getElementById('edit-charger-lng').value),
-      connector: document.getElementById('edit-charger-connector').value.trim() || null,
-      level: document.getElementById('edit-charger-level').value.trim() || null,
-      power_kw: parseFloat(document.getElementById('edit-charger-power').value) || null,
-      points: parseInt(document.getElementById('edit-charger-points').value) || null,
-      cost: document.getElementById('edit-charger-cost').value.trim() || null,
-      operator: document.getElementById('edit-charger-operator').value.trim() || null,
+      address: document.getElementById('edit-charger-address').value.trim() || currentCharger.address,
+      lat: parseFloat(document.getElementById('edit-charger-lat').value) || currentCharger.lat,
+      lng: parseFloat(document.getElementById('edit-charger-lng').value) || currentCharger.lng,
+      connector: document.getElementById('edit-charger-connector').value.trim() || origConn.type || null,
+      level: document.getElementById('edit-charger-level').value.trim() || origConn.level || null,
+      power_kw: parseFloat(document.getElementById('edit-charger-power').value) || origConn.powerKW || null,
+      points: parseInt(document.getElementById('edit-charger-points').value) || currentCharger.numberOfPoints || null,
+      cost: document.getElementById('edit-charger-cost').value.trim() || currentCharger.cost || null,
+      operator: document.getElementById('edit-charger-operator').value.trim() || currentCharger.operator || null,
       charger_id: chargerId
     };
 
@@ -1560,6 +1553,8 @@
         var station = stations.find(function(s) { return s.id === btn.dataset.id; });
         if (!station) return;
         var formHtml = '<div class="admin-section-title">Editar estación</div>' +
+          '<div id="admin-edit-map" style="width:100%;height:200px;border-radius:var(--radius-sm);margin-bottom:12px;cursor:crosshair;"></div>' +
+          '<p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;text-align:center;">Haz clic para mover el pin</p>' +
           '<div class="form-group"><label>Nombre</label><input type="text" id="edit-st-name" value="' + (station.name || '') + '" /></div>' +
           '<div class="form-group"><label>Dirección</label><input type="text" id="edit-st-address" value="' + (station.address || '') + '" /></div>' +
           '<div class="new-station-row">' +
@@ -1572,23 +1567,45 @@
             '<div class="form-group" style="flex:1;"><label>Costo</label><input type="text" id="edit-st-cost" value="' + (station.cost || '') + '" /></div>' +
           '</div>' +
           '<div class="form-group"><label>Operador</label><input type="text" id="edit-st-operator" value="' + (station.operator || '') + '" /></div>' +
+          '<input type="hidden" id="edit-st-lat" value="' + (station.lat || '') + '" />' +
+          '<input type="hidden" id="edit-st-lng" value="' + (station.lng || '') + '" />' +
           '<button class="btn-primary" id="btn-save-station" style="width:100%;margin-top:8px;">Guardar cambios</button>' +
           '<button class="btn-primary" id="btn-cancel-edit" style="width:100%;margin-top:8px;background:var(--surface);color:var(--text);border:1px solid var(--border);">Cancelar</button>';
         el.innerHTML = formHtml;
+
+        // Init mini map
+        var adminEditMap = L.map('admin-edit-map', { zoomControl: false }).setView([station.lat || 27.49, station.lng || -109.94], 15);
+        var isDrk = currentTheme === 'dark';
+        L.tileLayer(isDrk ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '' }).addTo(adminEditMap);
+        var adminEditMarker = L.marker([station.lat || 27.49, station.lng || -109.94], { draggable: true, icon: createStationIcon() }).addTo(adminEditMap);
+        adminEditMarker.on('dragend', function() {
+          var pos = adminEditMarker.getLatLng();
+          document.getElementById('edit-st-lat').value = pos.lat;
+          document.getElementById('edit-st-lng').value = pos.lng;
+        });
+        adminEditMap.on('click', function(e) {
+          adminEditMarker.setLatLng(e.latlng);
+          document.getElementById('edit-st-lat').value = e.latlng.lat;
+          document.getElementById('edit-st-lng').value = e.latlng.lng;
+        });
+        setTimeout(function() { adminEditMap.invalidateSize(); }, 200);
 
         document.getElementById('btn-cancel-edit').addEventListener('click', function() { loadAdminSection('admin-estaciones'); });
         document.getElementById('btn-save-station').addEventListener('click', async function() {
           await SupabaseApp.updateStation(station.id, {
             name: document.getElementById('edit-st-name').value,
             address: document.getElementById('edit-st-address').value,
-            connector: document.getElementById('edit-st-connector').value,
-            level: document.getElementById('edit-st-level').value,
+            connector: document.getElementById('edit-st-connector').value || null,
+            level: document.getElementById('edit-st-level').value || null,
             power_kw: parseFloat(document.getElementById('edit-st-power').value) || null,
-            points: parseInt(document.getElementById('edit-st-points').value) || 1,
-            cost: document.getElementById('edit-st-cost').value,
-            operator: document.getElementById('edit-st-operator').value
+            points: parseInt(document.getElementById('edit-st-points').value) || null,
+            cost: document.getElementById('edit-st-cost').value || null,
+            operator: document.getElementById('edit-st-operator').value || null,
+            lat: parseFloat(document.getElementById('edit-st-lat').value) || station.lat,
+            lng: parseFloat(document.getElementById('edit-st-lng').value) || station.lng
           });
           showToast('Estación actualizada');
+          ChargerData.clearCache && ChargerData.clearCache();
           loadChargers();
           loadAdminSection('admin-estaciones');
         });
