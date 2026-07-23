@@ -234,7 +234,7 @@ body {
   width: auto;
   height: auto;
   border-radius: var(--radius-sm);
-  background: var(--accent);
+  background: #22c55e;
   color: white;
   font-weight: 600;
   font-size: 13px;
@@ -244,7 +244,7 @@ body {
 }
 
 .top-btn-accent:hover {
-  background: var(--accent-hover);
+  background: #4ade80;
   color: white;
 }
 
