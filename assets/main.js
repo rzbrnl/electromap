@@ -1068,6 +1068,22 @@
   function checkResetToken() {
     var hash = window.location.hash;
     if (hash && (hash.includes('access_token') || hash.includes('type=recovery'))) {
+      var params = new URLSearchParams(hash.substring(1));
+      var accessToken = params.get('access_token');
+      var refreshToken = params.get('refresh_token');
+      if (accessToken && refreshToken) {
+        var client = SupabaseApp.getClient();
+        if (client) {
+          client.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(function() {
+            window.location.hash = '';
+            showAuthView('reset');
+            document.getElementById('auth-title').textContent = 'Nueva contraseña';
+            document.getElementById('auth-subtitle').textContent = 'Elige una contraseña segura';
+            document.getElementById('auth-modal').classList.remove('hidden');
+          });
+          return;
+        }
+      }
       showAuthView('reset');
       document.getElementById('auth-title').textContent = 'Nueva contraseña';
       document.getElementById('auth-subtitle').textContent = 'Elige una contraseña segura';
