@@ -263,32 +263,22 @@
     document.getElementById('close-auth').addEventListener('click', hideAuthModal);
     document.getElementById('btn-apply-filters').addEventListener('click', function() { applyFilters(); hideFilters(); });
 
-    document.getElementById('auth-form').addEventListener('submit', handleAuth);
-    document.getElementById('toggle-auth').addEventListener('click', function(e) {
-      e.preventDefault();
-      toggleAuthMode();
-    });
-    document.getElementById('forgot-password').addEventListener('click', async function(e) {
-      e.preventDefault();
-      var email = document.getElementById('auth-email').value;
-      if (!email) {
-        document.getElementById('auth-error').textContent = 'Ingresa tu correo primero';
-        document.getElementById('auth-error').classList.remove('hidden');
-        return;
-      }
-      try {
-        await SupabaseApp.getClient().auth.resetPasswordForEmail(email, {
-          redirectTo: 'https://electromap.josue.work'
-        });
-        document.getElementById('auth-error').textContent = 'Revisa tu correo para restablecer la contraseña';
-        document.getElementById('auth-error').style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
-        document.getElementById('auth-error').style.borderColor = 'rgba(34, 197, 94, 0.3)';
-        document.getElementById('auth-error').style.color = '#22c55e';
-        document.getElementById('auth-error').classList.remove('hidden');
-      } catch (err) {
-        document.getElementById('auth-error').textContent = 'Error: ' + (err.message || 'Intenta de nuevo');
-        document.getElementById('auth-error').classList.remove('hidden');
-      }
+    // Auth form switching
+    document.getElementById('auth-form').addEventListener('submit', handleLogin);
+    document.getElementById('signup-form').addEventListener('submit', handleSignup);
+    document.getElementById('forgot-form').addEventListener('submit', handleForgotPassword);
+    document.getElementById('toggle-auth').addEventListener('click', function(e) { e.preventDefault(); showAuthView('signup'); });
+    document.getElementById('toggle-to-login').addEventListener('click', function(e) { e.preventDefault(); showAuthView('login'); });
+    document.getElementById('forgot-password').addEventListener('click', function(e) { e.preventDefault(); showAuthView('forgot'); });
+    document.getElementById('back-to-login').addEventListener('click', function(e) { e.preventDefault(); showAuthView('login'); });
+    document.getElementById('signup-password').addEventListener('input', function() { updatePasswordStrength(this.value); });
+    document.getElementById('signup-confirm').addEventListener('input', function() {
+      var pw = document.getElementById('signup-password').value;
+      var el = document.getElementById('password-match');
+      if (!this.value) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      if (this.value === pw) { el.textContent = 'Las contraseñas coinciden'; el.className = 'password-match valid'; }
+      else { el.textContent = 'Las contraseñas no coinciden'; el.className = 'password-match invalid'; }
     });
 
     document.getElementById('btn-more-info').addEventListener('click', function() {
@@ -327,7 +317,28 @@
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); hideAuthModal(); document.getElementById('report-modal').classList.add('hidden'); document.getElementById('new-station-modal').classList.add('hidden'); } });
   }
 
-  var isLoginMode = true;
+  // === AUTH VIEWS ===
+  function showAuthView(view) {
+    document.getElementById('auth-form').classList.add('hidden');
+    document.getElementById('signup-form').classList.add('hidden');
+    document.getElementById('forgot-form').classList.add('hidden');
+    document.getElementById('auth-error').classList.add('hidden');
+    document.getElementById('signup-error').classList.add('hidden');
+    document.getElementById('forgot-error').classList.add('hidden');
+    if (view === 'login') {
+      document.getElementById('auth-form').classList.remove('hidden');
+      document.getElementById('auth-title').textContent = 'Iniciar sesión';
+      document.getElementById('auth-subtitle').textContent = 'Bienvenido de nuevo a ElectroMap';
+    } else if (view === 'signup') {
+      document.getElementById('signup-form').classList.remove('hidden');
+      document.getElementById('auth-title').textContent = 'Crear cuenta';
+      document.getElementById('auth-subtitle').textContent = 'Únete a la comunidad ElectroMap';
+    } else if (view === 'forgot') {
+      document.getElementById('forgot-form').classList.remove('hidden');
+      document.getElementById('auth-title').textContent = 'Recuperar contraseña';
+      document.getElementById('auth-subtitle').textContent = 'Te enviaremos un enlace para restablecerla';
+    }
+  }
 
   async function toggleAuthModal() {
     try {
@@ -335,9 +346,11 @@
       if (result && result.data && result.data.user && result.data.user.id) {
         showProfileModal(result.data.user);
       } else {
+        showAuthView('login');
         document.getElementById('auth-modal').classList.remove('hidden');
       }
     } catch (e) {
+      showAuthView('login');
       document.getElementById('auth-modal').classList.remove('hidden');
     }
   }
@@ -345,6 +358,9 @@
   function hideAuthModal() {
     document.getElementById('auth-modal').classList.add('hidden');
     document.getElementById('auth-error').classList.add('hidden');
+    document.getElementById('signup-error').classList.add('hidden');
+    document.getElementById('forgot-error').classList.add('hidden');
+    showAuthView('login');
   }
 
   // === FAVORITES ===
@@ -868,51 +884,109 @@
     document.body.appendChild(overlay);
   }
 
-  function toggleAuthMode() {
-    isLoginMode = !isLoginMode;
-    document.getElementById('auth-title').textContent = isLoginMode ? 'Iniciar sesión' : 'Crear cuenta';
-    document.getElementById('auth-submit').textContent = isLoginMode ? 'Iniciar sesión' : 'Crear cuenta';
-    document.getElementById('toggle-auth').textContent = isLoginMode ? 'Regístrate' : 'Inicia sesión';
+  function updatePasswordStrength(pw) {
+    var bar = document.getElementById('strength-fill');
+    var text = document.getElementById('strength-text');
+    var container = document.getElementById('password-strength');
+    if (!pw) { container.classList.add('hidden'); return; }
+    container.classList.remove('hidden');
+    var score = 0;
+    if (pw.length >= 6) score++;
+    if (pw.length >= 10) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    var levels = [
+      { width: '20%', color: '#ef4444', label: 'Muy débil' },
+      { width: '40%', color: '#f97316', label: 'Débil' },
+      { width: '60%', color: '#f59e0b', label: 'Regular' },
+      { width: '80%', color: '#22c55e', label: 'Buena' },
+      { width: '100%', color: '#16a34a', label: 'Muy fuerte' }
+    ];
+    var level = levels[Math.min(score, 4)];
+    bar.style.width = level.width;
+    bar.style.background = level.color;
+    text.textContent = level.label;
+    text.style.color = level.color;
   }
 
-  async function handleAuth(e) {
+  async function handleLogin(e) {
     e.preventDefault();
     var email = document.getElementById('auth-email').value;
     var password = document.getElementById('auth-password').value;
     var errorEl = document.getElementById('auth-error');
     var submitBtn = document.getElementById('auth-submit');
-
     errorEl.classList.add('hidden');
     submitBtn.textContent = 'Cargando...';
     submitBtn.disabled = true;
-
     try {
-      if (isLoginMode) {
-        var loginResult = await SupabaseApp.signIn(email, password);
-        if (loginResult && loginResult.user) {
-          hideAuthModal();
-          showToast('Sesión iniciada correctamente');
-          loadUserFavorites();
-        } else {
-          errorEl.textContent = 'Error al iniciar sesión. Verifica tus credenciales.';
-          errorEl.classList.remove('hidden');
-        }
+      var result = await SupabaseApp.signIn(email, password);
+      if (result && result.user) {
+        hideAuthModal();
+        showToast('Sesión iniciada correctamente');
+        loadUserFavorites();
       } else {
-        var signupResult = await SupabaseApp.signUp(email, password);
-        if (signupResult && signupResult.user) {
-          hideAuthModal();
-          showToast('Cuenta creada. Revisa tu correo para confirmar.');
-        } else {
-          errorEl.textContent = 'Error al crear cuenta.';
-          errorEl.classList.remove('hidden');
-        }
+        errorEl.textContent = 'Credenciales incorrectas. Intenta de nuevo.';
+        errorEl.classList.remove('hidden');
       }
     } catch (err) {
-      errorEl.textContent = err.message || 'Error desconocido';
+      errorEl.textContent = err.message || 'Error al iniciar sesión';
       errorEl.classList.remove('hidden');
     }
+    submitBtn.textContent = 'Iniciar sesión';
+    submitBtn.disabled = false;
+  }
 
-    submitBtn.textContent = isLoginMode ? 'Iniciar sesión' : 'Crear cuenta';
+  async function handleSignup(e) {
+    e.preventDefault();
+    var name = document.getElementById('signup-name').value.trim();
+    var email = document.getElementById('signup-email').value;
+    var password = document.getElementById('signup-password').value;
+    var confirm = document.getElementById('signup-confirm').value;
+    var errorEl = document.getElementById('signup-error');
+    var submitBtn = document.getElementById('signup-submit');
+    errorEl.classList.add('hidden');
+    if (password !== confirm) { errorEl.textContent = 'Las contraseñas no coinciden'; errorEl.classList.remove('hidden'); return; }
+    if (password.length < 6) { errorEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; errorEl.classList.remove('hidden'); return; }
+    submitBtn.textContent = 'Creando cuenta...';
+    submitBtn.disabled = true;
+    try {
+      var result = await SupabaseApp.signUp(email, password, name);
+      if (result && result.user) {
+        hideAuthModal();
+        showToast('Cuenta creada. Revisa tu correo para confirmar.');
+      } else {
+        errorEl.textContent = 'Error al crear cuenta. Es posible que el correo ya esté registrado.';
+        errorEl.classList.remove('hidden');
+      }
+    } catch (err) {
+      errorEl.textContent = err.message || 'Error al crear cuenta';
+      errorEl.classList.remove('hidden');
+    }
+    submitBtn.textContent = 'Crear cuenta';
+    submitBtn.disabled = false;
+  }
+
+  async function handleForgotPassword(e) {
+    e.preventDefault();
+    var email = document.getElementById('forgot-email').value;
+    var errorEl = document.getElementById('forgot-error');
+    var submitBtn = document.getElementById('forgot-submit');
+    errorEl.classList.add('hidden');
+    submitBtn.textContent = 'Enviando...';
+    submitBtn.disabled = true;
+    try {
+      await SupabaseApp.getClient().auth.resetPasswordForEmail(email, { redirectTo: 'https://electromap.josue.work' });
+      errorEl.textContent = 'Revisa tu correo para restablecer la contraseña';
+      errorEl.style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
+      errorEl.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+      errorEl.style.color = '#22c55e';
+      errorEl.classList.remove('hidden');
+    } catch (err) {
+      errorEl.textContent = err.message || 'Error al enviar correo';
+      errorEl.classList.remove('hidden');
+    }
+    submitBtn.textContent = 'Enviar enlace';
     submitBtn.disabled = false;
   }
 

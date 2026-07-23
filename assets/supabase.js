@@ -182,10 +182,23 @@ var SupabaseApp = (function() {
   }
 
   // === AUTH ===
-  async function signUp(email, password) {
+  async function signUp(email, password, displayName) {
     if (!client) return null;
-    const { data, error } = await client.auth.signUp({ email, password });
-    return error ? null : data;
+    const { data, error } = await client.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: displayName || '' } }
+    });
+    if (error || !data || !data.user) return null;
+    // Save display_name to user_profiles
+    try {
+      await client.from('user_profiles').upsert({
+        id: data.user.id,
+        email: email,
+        display_name: displayName || ''
+      }, { onConflict: 'id' });
+    } catch (e) {}
+    return data;
   }
 
   async function signIn(email, password) {

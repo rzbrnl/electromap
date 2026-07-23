@@ -1537,9 +1537,59 @@ body {
 
 .auth-toggle {
   text-align: center;
-  margin-top: 16px;
+  margin-top: 12px;
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.auth-toggle a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.password-strength {
+  margin-top: 6px;
+}
+
+.strength-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 2px;
+  transition: width 0.3s, background 0.3s;
+}
+
+.strength-text {
+  font-size: 11px;
+  margin-top: 2px;
+  display: block;
+}
+
+.password-match {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.password-match.valid {
+  color: var(--accent);
+}
+
+.password-match.invalid {
+  color: var(--danger);
 }
 
 .auth-toggle a {

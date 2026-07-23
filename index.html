@@ -25,7 +25,7 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
     />
-    <link rel="stylesheet" href="css/style.css?v=em52" />
+    <link rel="stylesheet" href="css/style.css?v=em53" />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'><path d='M7 2v11h3v9l7-12h-4l4-8z'/></svg>"
@@ -569,11 +569,16 @@
     <div id="auth-modal" class="modal hidden">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 id="auth-title">Iniciar sesión</h3>
+          <div>
+            <h3 id="auth-title">Iniciar sesión</h3>
+            <p id="auth-subtitle" class="auth-subtitle">Bienvenido de nuevo a ElectroMap</p>
+          </div>
           <button class="close-btn" id="close-auth">
             <svg class="icon" width="14" height="14"><use href="#icon-close"></use></svg>
           </button>
         </div>
+
+        <!-- Login Form -->
         <form id="auth-form">
           <div class="form-group">
             <label for="auth-email">Correo electrónico</label>
@@ -591,6 +596,49 @@
             ¿No tienes cuenta? <a href="#" id="toggle-auth">Regístrate</a>
           </p>
           <div id="auth-error" class="error-msg hidden"></div>
+        </form>
+
+        <!-- Signup Form -->
+        <form id="signup-form" class="hidden">
+          <div class="form-group">
+            <label for="signup-name">Nombre</label>
+            <input type="text" id="signup-name" placeholder="Tu nombre" required />
+          </div>
+          <div class="form-group">
+            <label for="signup-email">Correo electrónico</label>
+            <input type="email" id="signup-email" placeholder="tu@email.com" required />
+          </div>
+          <div class="form-group">
+            <label for="signup-password">Contraseña</label>
+            <input type="password" id="signup-password" placeholder="Mínimo 6 caracteres" required minlength="6" />
+            <div id="password-strength" class="password-strength hidden">
+              <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+              <span class="strength-text" id="strength-text"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="signup-confirm">Confirmar contraseña</label>
+            <input type="password" id="signup-confirm" placeholder="Repite tu contraseña" required minlength="6" />
+            <div id="password-match" class="password-match hidden"></div>
+          </div>
+          <button type="submit" class="btn-primary" id="signup-submit">Crear cuenta</button>
+          <p class="auth-toggle">
+            ¿Ya tienes cuenta? <a href="#" id="toggle-to-login">Inicia sesión</a>
+          </p>
+          <div id="signup-error" class="error-msg hidden"></div>
+        </form>
+
+        <!-- Forgot Password Form -->
+        <form id="forgot-form" class="hidden">
+          <div class="form-group">
+            <label for="forgot-email">Correo electrónico</label>
+            <input type="email" id="forgot-email" placeholder="tu@email.com" required />
+          </div>
+          <button type="submit" class="btn-primary" id="forgot-submit">Enviar enlace</button>
+          <p class="auth-toggle">
+            <a href="#" id="back-to-login">← Volver a iniciar sesión</a>
+          </p>
+          <div id="forgot-error" class="error-msg hidden"></div>
         </form>
       </div>
     </div>
@@ -706,9 +754,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="assets/data.js?v=em50"></script>
-    <script src="assets/supabase.js?v=em50"></script>
-    <script src="assets/map.js?v=em50"></script>
-    <script src="assets/main.js?v=em50"></script>
+    <script src="assets/data.js?v=em53"></script>
+    <script src="assets/supabase.js?v=em53"></script>
+    <script src="assets/map.js?v=em53"></script>
+    <script src="assets/main.js?v=em53"></script>
   </body>
 </html>
