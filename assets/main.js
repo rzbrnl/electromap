@@ -543,7 +543,8 @@
     var text = document.getElementById('comment-text').value.trim();
     if (!text && !selectedRating) { showToast('Escribe un comentario o selecciona una calificación'); return; }
 
-    var userName = user.email ? user.email.split('@')[0] : 'Anónimo';
+    var profile = await SupabaseApp.getProfile(user.id);
+    var userName = (profile && profile.display_name) ? profile.display_name : (user.email ? user.email.split('@')[0] : 'Anónimo');
     var result = await SupabaseApp.addComment(currentCharger.id, userName, selectedRating || null, text, user.id);
     if (result) {
       document.getElementById('comment-text').value = '';
@@ -803,7 +804,7 @@
         '<input type="file" id="avatar-file-input" accept="image/*" style="display:none;">' +
       '</div>' +
       '<div style="text-align:center;">' +
-        '<div style="color:var(--text);font-size:16px;font-weight:600;margin-bottom:4px;">' + (user.email || 'Usuario') + '</div>' +
+        '<div class="profile-name" style="color:var(--text);font-size:16px;font-weight:600;margin-bottom:4px;">' + (user.email || 'Usuario') + '</div>' +
         '<div style="color:var(--text-muted);font-size:13px;">Miembro de ElectroMap</div>' +
       '</div>' +
       '<div class="profile-section">' +
@@ -821,6 +822,12 @@
     modal.classList.remove('hidden');
 
     // Load profile data
+    SupabaseApp.getProfile(user.id).then(function(profile) {
+      if (profile && profile.display_name) {
+        var nameEl = document.querySelector('#auth-form .profile-name');
+        if (nameEl) nameEl.textContent = profile.display_name;
+      }
+    });
     SupabaseApp.getFavorites(user.id).then(function(favs) {
       var el = document.getElementById('profile-fav-count');
       if (el) el.textContent = favs.length;
@@ -968,6 +975,12 @@
       if (result && result.user) {
         hideAuthModal();
         showToast('Sesión iniciada correctamente');
+        // Save display_name to profile if available
+        var name = localStorage.getItem('em-pending-name');
+        if (name && result.user.id) {
+          SupabaseApp.updateDisplayName(result.user.id, name);
+          localStorage.removeItem('em-pending-name');
+        }
         loadUserFavorites();
       } else {
         errorEl.textContent = 'Credenciales incorrectas. Intenta de nuevo.';
@@ -997,6 +1010,8 @@
     try {
       var result = await SupabaseApp.signUp(email, password, name);
       if (result && result.user) {
+        // Store name for post-login save
+        if (name) localStorage.setItem('em-pending-name', name);
         hideAuthModal();
         showToast('Cuenta creada. Revisa tu correo para confirmar.');
       } else {

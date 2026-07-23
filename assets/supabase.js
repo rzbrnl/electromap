@@ -187,6 +187,23 @@ var SupabaseApp = (function() {
     return error ? [] : data;
   }
 
+  // === PROFILE ===
+  async function getProfile(userId) {
+    if (!client) return null;
+    const { data } = await client.from('user_profiles')
+      .select('display_name, avatar_url')
+      .eq('id', userId)
+      .single();
+    return data || null;
+  }
+
+  async function updateDisplayName(userId, name) {
+    if (!client) return;
+    await client.from('user_profiles').upsert({
+      id: userId, display_name: name
+    }, { onConflict: 'id' });
+  }
+
   // === AUTH ===
   async function signUp(email, password, displayName) {
     if (!client) return null;
@@ -231,6 +248,7 @@ var SupabaseApp = (function() {
     addReport, getReports,
     getFavorites, toggleFavorite,
     addToHistory, getHistory,
+    getProfile, updateDisplayName,
     signUp, signIn, signOut, getUser
   };
 })();
