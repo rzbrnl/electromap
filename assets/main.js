@@ -227,10 +227,10 @@
     getCurrentUser().then(function(user) {
       if (user) {
         SupabaseApp.isAdmin(user.id).then(function(isAdmin) {
-          editBtn.style.display = isAdmin ? '' : 'none';
+          editBtn.classList.toggle('hidden', !isAdmin);
         });
       } else {
-        editBtn.style.display = 'none';
+        editBtn.classList.add('hidden');
       }
     });
     editBtn.onclick = function() { openEditStationModal(charger); };
@@ -451,7 +451,7 @@
       moveTimeout = setTimeout(function() { loadChargers(); }, 500);
     });
 
-    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); hideAuthModal(); document.getElementById('report-modal').classList.add('hidden'); document.getElementById('new-station-modal').classList.add('hidden'); } });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); hideAuthModal(); document.getElementById('report-modal').classList.add('hidden'); document.getElementById('new-station-modal').classList.add('hidden'); document.getElementById('edit-station-modal').classList.add('hidden'); } });
   }
 
   // === AUTH VIEWS ===
@@ -1242,12 +1242,12 @@
       address: document.getElementById('edit-charger-address').value.trim(),
       lat: parseFloat(document.getElementById('edit-charger-lat').value),
       lng: parseFloat(document.getElementById('edit-charger-lng').value),
-      connector: document.getElementById('edit-charger-connector').value.trim(),
-      level: document.getElementById('edit-charger-level').value.trim(),
+      connector: document.getElementById('edit-charger-connector').value.trim() || null,
+      level: document.getElementById('edit-charger-level').value.trim() || null,
       power_kw: parseFloat(document.getElementById('edit-charger-power').value) || null,
-      points: parseInt(document.getElementById('edit-charger-points').value) || 1,
-      cost: document.getElementById('edit-charger-cost').value.trim(),
-      operator: document.getElementById('edit-charger-operator').value.trim(),
+      points: parseInt(document.getElementById('edit-charger-points').value) || null,
+      cost: document.getElementById('edit-charger-cost').value.trim() || null,
+      operator: document.getElementById('edit-charger-operator').value.trim() || null,
       charger_id: chargerId
     };
 
@@ -1262,6 +1262,8 @@
       document.getElementById('edit-station-modal').classList.add('hidden');
       if (editStationMap) { editStationMap.remove(); editStationMap = null; }
       showToast('Estación actualizada');
+      // Clear cache and reload
+      ChargerData.clearCache && ChargerData.clearCache();
       loadChargers();
     } else {
       showToast('Error al guardar');

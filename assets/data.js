@@ -141,6 +141,11 @@ var ChargerData = (function() {
     return 'level1';
   }
 
+  function clearCache() {
+    cache.clear();
+    lastFetch = null;
+  }
+
   return {
     setUserLocation: setUserLocation,
     getUserLocation: getUserLocation,
@@ -150,6 +155,7 @@ var ChargerData = (function() {
     getStats: getStats,
     getMarkerColor: getMarkerColor,
     loadConfig: loadConfig,
+    clearCache: clearCache,
     get lastFetch() { return lastFetch; }
   };
 })();

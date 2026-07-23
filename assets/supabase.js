@@ -177,8 +177,14 @@ var SupabaseApp = (function() {
 
   async function updateStation(id, stationData) {
     if (!client) return false;
+    // Only update non-null fields
+    var clean = {};
+    Object.keys(stationData).forEach(function(k) {
+      if (stationData[k] !== null && stationData[k] !== undefined) clean[k] = stationData[k];
+    });
+    clean.updated_at = new Date().toISOString();
     const { error } = await client.from('approved_stations')
-      .update({ ...stationData, updated_at: new Date().toISOString() })
+      .update(clean)
       .eq('id', id);
     return !error;
   }
