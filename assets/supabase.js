@@ -132,9 +132,60 @@ var SupabaseApp = (function() {
       new_station_address: reportData.newStationAddress,
       new_station_lat: reportData.newStationLat,
       new_station_lng: reportData.newStationLng,
-      new_station_connector: reportData.newStationConnector
+      new_station_connector: reportData.newStationConnector,
+      station_level: reportData.level,
+      station_power_kw: reportData.power,
+      station_points: reportData.points,
+      station_cost: reportData.cost,
+      station_operator: reportData.operator
     }).select();
     return error ? null : data[0];
+  }
+
+  async function deleteReport(reportId) {
+    if (!client) return false;
+    const { error } = await client.from('reports').delete().eq('id', reportId);
+    return !error;
+  }
+
+  // === APPROVED STATIONS ===
+  async function getApprovedStations() {
+    if (!client) return [];
+    const { data, error } = await client.from('approved_stations')
+      .select('*')
+      .order('created_at', { ascending: false });
+    return error ? [] : data;
+  }
+
+  async function approveStation(stationData) {
+    if (!client) return null;
+    const { data, error } = await client.from('approved_stations').insert({
+      name: stationData.name,
+      address: stationData.address,
+      lat: stationData.lat,
+      lng: stationData.lng,
+      connector: stationData.connector,
+      level: stationData.level,
+      power_kw: stationData.power,
+      points: stationData.points,
+      cost: stationData.cost,
+      operator: stationData.operator
+    }).select();
+    return error ? null : data[0];
+  }
+
+  async function updateStation(id, stationData) {
+    if (!client) return false;
+    const { error } = await client.from('approved_stations')
+      .update({ ...stationData, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    return !error;
+  }
+
+  async function deleteStation(id) {
+    if (!client) return false;
+    const { error } = await client.from('approved_stations').delete().eq('id', id);
+    return !error;
   }
 
   async function getReports() {
@@ -329,7 +380,8 @@ var SupabaseApp = (function() {
     init, getClient,
     getComments, getCommentsByUser, addComment, updateComment, deleteComment, getAverageRating,
     getPhotos, getUserPhotos, deletePhoto, addPhoto,
-    addReport, getReports,
+    addReport, getReports, deleteReport,
+    getApprovedStations, approveStation, updateStation, deleteStation,
     getFavorites, toggleFavorite,
     addToHistory, getHistory,
     getProfile, updateDisplayName,

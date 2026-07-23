@@ -2286,6 +2286,17 @@ textarea:focus {
   border-color: var(--accent);
 }
 
+.admin-action-btn.approve {
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.admin-action-btn.approve:hover {
+  background: var(--accent);
+  color: white;
+}
+
 .admin-action-btn.dismiss:hover {
   color: var(--warning);
   border-color: var(--warning);

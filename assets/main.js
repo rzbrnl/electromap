@@ -65,7 +65,42 @@
     var center = ChargerMap.getCenter();
     var radius = ChargerMap.getRadius();
     updateStatus('Cargando...');
-    return ChargerData.fetchChargers(center.lat, center.lng, radius, 100).then(function(chargers) {
+    return ChargerData.fetchChargers(center.lat, center.lng, radius, 100).then(async function(chargers) {
+      // Merge CFE stations with approved community stations
+      try {
+        var approved = await SupabaseApp.getApprovedStations();
+        if (approved && approved.length > 0) {
+          var communityChargers = approved.map(function(s) {
+            var levelId = s.level === 'DC Rápida' ? 3 : s.level === 'Nivel 2' ? 2 : 1;
+            return {
+              id: 'approved-' + s.id,
+              name: s.name,
+              address: s.address || '',
+              lat: s.lat,
+              lng: s.lng,
+              country: 'México',
+              operator: s.operator || 'Comunidad',
+              network: s.operator || 'Comunidad',
+              status: s.status || 'Operational',
+              statusId: 50,
+              usage: 'Público',
+              cost: s.cost || 'Desconocido',
+              numberOfPoints: s.points || 1,
+              photos: [],
+              connections: [{
+                type: s.connector || 'N/A',
+                typeId: 0,
+                powerKW: s.power_kw || 0,
+                level: s.level || 'N/A',
+                levelId: levelId
+              }],
+              numConnections: s.points || 1,
+              _approvedId: s.id
+            };
+          });
+          chargers = chargers.concat(communityChargers);
+        }
+      } catch (e) { console.warn('Error loading approved stations:', e); }
       allChargers = chargers;
       applyFilters();
       updateStatus('En vivo');
@@ -900,7 +935,12 @@
       newStationAddress: document.getElementById('station-address').value.trim(),
       newStationConnector: connector,
       newStationLat: parseFloat(document.getElementById('station-lat').value) || null,
-      newStationLng: parseFloat(document.getElementById('station-lng').value) || null
+      newStationLng: parseFloat(document.getElementById('station-lng').value) || null,
+      level: level,
+      power: power ? parseFloat(power) : null,
+      points: points ? parseInt(points) : null,
+      cost: cost,
+      operator: operator
     };
 
     var result = await SupabaseApp.addReport(data);
@@ -1120,13 +1160,12 @@
     subtitle.innerHTML = '<a href="#" id="admin-back-to-profile" style="color:var(--accent);text-decoration:none;font-size:12px;">← Volver al perfil</a>';
 
     form.innerHTML =
-
-    form.innerHTML =
       '<div class="admin-layout">' +
         '<div class="admin-sidebar">' +
           '<button class="admin-nav active" data-section="admin-resumen">Resumen</button>' +
           '<button class="admin-nav" data-section="admin-usuarios">Usuarios</button>' +
           '<button class="admin-nav" data-section="admin-reportes">Reportes</button>' +
+          '<button class="admin-nav" data-section="admin-estaciones">Estaciones</button>' +
           '<button class="admin-nav" data-section="admin-resenas">Reseñas</button>' +
           '<button class="admin-nav" data-section="admin-fotos">Fotos</button>' +
         '</div>' +
@@ -1165,6 +1204,7 @@
     if (section === 'admin-resumen') await renderAdminResumen(content);
     else if (section === 'admin-usuarios') await renderAdminUsuarios(content);
     else if (section === 'admin-reportes') await renderAdminReportes(content);
+    else if (section === 'admin-estaciones') await renderAdminEstaciones(content);
     else if (section === 'admin-resenas') await renderAdminResenas(content);
     else if (section === 'admin-fotos') await renderAdminFotos(content);
   }
@@ -1251,22 +1291,60 @@
   function renderReportItem(r) {
     var statusClass = r.status === 'resolved' ? 'resolved' : r.status === 'dismissed' ? 'dismissed' : 'pending';
     var typeLabel = r.report_type === 'new_station' ? 'Nueva estación' : r.report_type === 'damaged' ? 'Dañado' : 'Info incorrecta';
-    return '<div class="admin-report-item">' +
-      '<div class="admin-report-header"><span class="admin-report-type">' + typeLabel + '</span><span class="admin-report-status ' + statusClass + '">' + (r.status || 'pending') + '</span></div>' +
-      '<div class="admin-report-desc">' + (r.description || 'Sin descripción') + '</div>' +
-      (r.new_station_name ? '<div class="admin-report-desc">Estación: ' + r.new_station_name + '</div>' : '') +
-      '<div class="admin-report-actions">' +
-        '<button class="admin-action-btn resolve" data-id="' + r.id + '">Resuelto</button>' +
-        '<button class="admin-action-btn dismiss" data-id="' + r.id + '">Descartar</button>' +
+    var html = '<div class="admin-report-item">' +
+      '<div class="admin-report-header"><span class="admin-report-type">' + typeLabel + '</span><span class="admin-report-status ' + statusClass + '">' + (r.status || 'pending') + '</span></div>';
+    if (r.new_station_name) {
+      html += '<div class="admin-report-desc"><b>' + r.new_station_name + '</b></div>';
+      if (r.new_station_address) html += '<div class="admin-report-desc">' + r.new_station_address + '</div>';
+      var details = [];
+      if (r.new_station_connector) details.push(r.new_station_connector);
+      if (r.station_level) details.push(r.station_level);
+      if (r.station_power_kw) details.push(r.station_power_kw + ' kW');
+      if (r.station_points) details.push(r.station_points + ' puntos');
+      if (r.station_cost) details.push(r.station_cost);
+      if (r.station_operator) details.push(r.station_operator);
+      if (details.length) html += '<div class="admin-report-desc">' + details.join(' · ') + '</div>';
+      if (r.new_station_lat && r.new_station_lng) html += '<div class="admin-report-desc" style="font-size:11px;">' + r.new_station_lat.toFixed(5) + ', ' + r.new_station_lng.toFixed(5) + '</div>';
+    } else {
+      html += '<div class="admin-report-desc">' + (r.description || 'Sin descripción') + '</div>';
+    }
+    html += '<div class="admin-report-actions">';
+    if (r.report_type === 'new_station' && statusClass === 'pending') {
+      html += '<button class="admin-action-btn approve" data-id="' + r.id + '">Aprobar</button>';
+    }
+    html += '<button class="admin-action-btn dismiss" data-id="' + r.id + '">Descartar</button>' +
       '</div></div>';
+    return html;
   }
 
   function attachReportActions() {
-    document.querySelectorAll('.admin-action-btn.resolve').forEach(function(btn) {
+    document.querySelectorAll('.admin-action-btn.approve').forEach(function(btn) {
       btn.addEventListener('click', async function() {
-        await SupabaseApp.updateReportStatus(this.dataset.id, 'resolved');
-        showToast('Marcado como resuelto');
-        loadAdminSection('admin-reportes');
+        var reportId = this.dataset.id;
+        // Find the report data
+        var reports = await SupabaseApp.getAllReports('all');
+        var report = reports.find(function(r) { return r.id === reportId; });
+        if (!report) { showToast('Error: reporte no encontrado'); return; }
+        // Approve: create in approved_stations
+        var station = await SupabaseApp.approveStation({
+          name: report.new_station_name,
+          address: report.new_station_address,
+          lat: report.new_station_lat,
+          lng: report.new_station_lng,
+          connector: report.new_station_connector,
+          level: report.station_level,
+          power: report.station_power_kw,
+          points: report.station_points,
+          cost: report.station_cost,
+          operator: report.station_operator
+        });
+        if (station) {
+          await SupabaseApp.updateReportStatus(reportId, 'resolved');
+          showToast('Estación aprobada y publicada en el mapa');
+          loadAdminSection('admin-reportes');
+        } else {
+          showToast('Error al aprobar estación');
+        }
       });
     });
     document.querySelectorAll('.admin-action-btn.dismiss').forEach(function(btn) {
@@ -1320,6 +1398,76 @@
         await SupabaseApp.deleteAnyPhoto(this.dataset.id);
         showToast('Foto eliminada');
         loadAdminSection('admin-fotos');
+      });
+    });
+  }
+
+  async function renderAdminEstaciones(el) {
+    var stations = await SupabaseApp.getApprovedStations();
+    el.innerHTML =
+      '<div class="admin-section-title">Estaciones aprobadas (' + stations.length + ')</div>' +
+      stations.map(function(s) {
+        var details = [];
+        if (s.connector) details.push(s.connector);
+        if (s.level) details.push(s.level);
+        if (s.power_kw) details.push(s.power_kw + ' kW');
+        if (s.cost) details.push(s.cost);
+        return '<div class="admin-report-item">' +
+          '<div class="admin-report-header"><span class="admin-row-name">' + s.name + '</span><span class="admin-report-status resolved">Aprobada</span></div>' +
+          '<div class="admin-report-desc">' + (s.address || '') + '</div>' +
+          '<div class="admin-report-desc">' + details.join(' · ') + '</div>' +
+          '<div class="admin-report-actions">' +
+            '<button class="admin-action-btn edit-station" data-id="' + s.id + '">Editar</button>' +
+            '<button class="admin-action-btn delete-station" data-id="' + s.id + '">Eliminar</button>' +
+          '</div></div>';
+      }).join('') || '<p style="color:var(--text-muted);padding:20px;">No hay estaciones aprobadas</p>';
+
+    el.querySelectorAll('.admin-action-btn.delete-station').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        if (!await customConfirm('¿Eliminar esta estación del mapa?')) return;
+        await SupabaseApp.deleteStation(this.dataset.id);
+        showToast('Estación eliminada');
+        loadAdminSection('admin-estaciones');
+      });
+    });
+
+    el.querySelectorAll('.admin-action-btn.edit-station').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        var station = stations.find(function(s) { return s.id === btn.dataset.id; });
+        if (!station) return;
+        var formHtml = '<div class="admin-section-title">Editar estación</div>' +
+          '<div class="form-group"><label>Nombre</label><input type="text" id="edit-st-name" value="' + (station.name || '') + '" /></div>' +
+          '<div class="form-group"><label>Dirección</label><input type="text" id="edit-st-address" value="' + (station.address || '') + '" /></div>' +
+          '<div class="new-station-row">' +
+            '<div class="form-group" style="flex:1;"><label>Conector</label><input type="text" id="edit-st-connector" value="' + (station.connector || '') + '" /></div>' +
+            '<div class="form-group" style="flex:1;"><label>Nivel</label><input type="text" id="edit-st-level" value="' + (station.level || '') + '" /></div>' +
+          '</div>' +
+          '<div class="new-station-row">' +
+            '<div class="form-group" style="flex:1;"><label>Potencia (kW)</label><input type="number" id="edit-st-power" value="' + (station.power_kw || '') + '" /></div>' +
+            '<div class="form-group" style="flex:1;"><label>Puntos</label><input type="number" id="edit-st-points" value="' + (station.points || 1) + '" /></div>' +
+            '<div class="form-group" style="flex:1;"><label>Costo</label><input type="text" id="edit-st-cost" value="' + (station.cost || '') + '" /></div>' +
+          '</div>' +
+          '<div class="form-group"><label>Operador</label><input type="text" id="edit-st-operator" value="' + (station.operator || '') + '" /></div>' +
+          '<button class="btn-primary" id="btn-save-station" style="width:100%;margin-top:8px;">Guardar cambios</button>' +
+          '<button class="btn-primary" id="btn-cancel-edit" style="width:100%;margin-top:8px;background:var(--surface);color:var(--text);border:1px solid var(--border);">Cancelar</button>';
+        el.innerHTML = formHtml;
+
+        document.getElementById('btn-cancel-edit').addEventListener('click', function() { loadAdminSection('admin-estaciones'); });
+        document.getElementById('btn-save-station').addEventListener('click', async function() {
+          await SupabaseApp.updateStation(station.id, {
+            name: document.getElementById('edit-st-name').value,
+            address: document.getElementById('edit-st-address').value,
+            connector: document.getElementById('edit-st-connector').value,
+            level: document.getElementById('edit-st-level').value,
+            power_kw: parseFloat(document.getElementById('edit-st-power').value) || null,
+            points: parseInt(document.getElementById('edit-st-points').value) || 1,
+            cost: document.getElementById('edit-st-cost').value,
+            operator: document.getElementById('edit-st-operator').value
+          });
+          showToast('Estación actualizada');
+          loadChargers();
+          loadAdminSection('admin-estaciones');
+        });
       });
     });
   }
