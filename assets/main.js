@@ -120,6 +120,7 @@
             }];
           });
           chargers = chargers.concat(communityChargers);
+          console.log('[ElectroMap] Approved:', approved.length, 'Community:', communityChargers.length, 'Overrides:', Object.keys(overrideMap).length);
         }
       } catch (e) { console.warn('Error loading approved stations:', e); }
       allChargers = chargers;
@@ -1458,7 +1459,12 @@
           await SupabaseApp.updateReportStatus(reportId, 'resolved');
           showToast('Estación aprobada y publicada en el mapa');
           ChargerData.clearCache && ChargerData.clearCache();
-          loadChargers();
+          // Force full reload after a brief delay to ensure DB write is committed
+          setTimeout(function() {
+            loadChargers().then(function() {
+              ChargerMap.addChargerMarkers(filteredChargers);
+            });
+          }, 500);
           loadAdminSection('admin-reportes');
         } else {
           showToast('Error al aprobar estación');
