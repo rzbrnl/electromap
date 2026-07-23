@@ -181,8 +181,8 @@
     else { sb.classList.add('unknown'); st.textContent = 'Desconocido'; }
 
     document.getElementById('charger-connectors').textContent = charger.connections.map(function(c) { return c.type; }).filter(function(v, i, a) { return a.indexOf(v) === i; }).join(', ') || 'N/A';
-    document.getElementById('charger-power').textContent = charger.connections.map(function(c) { return c.powerKW ? c.powerKW + ' kW' : ''; }).filter(Boolean).join(', ') || 'N/A';
-    document.getElementById('charger-level').textContent = charger.connections.map(function(c) { return c.level; }).filter(function(v, i, a) { return a.indexOf(v) === i; }).join(', ') || 'N/A';
+    document.getElementById('charger-power').textContent = charger.connections.map(function(c) { return c.powerKW || 0; }).sort(function(a, b) { return b - a; })[0] + ' kW' || 'N/A';
+    document.getElementById('charger-level').textContent = charger.connections.map(function(c) { return c.level; }).filter(function(v, i, a) { return v && v !== 'N/A' && a.indexOf(v) === i; }).sort(function(a, b) { var o = { 'DC Rápida': 3, 'Nivel 2': 2, 'Nivel 1': 1 }; return (o[b] || 0) - (o[a] || 0); })[0] || 'N/A';
     document.getElementById('charger-points').textContent = charger.numberOfPoints || 'N/A';
     document.getElementById('charger-cost').textContent = formatCost(charger.cost);
     document.getElementById('charger-usage').textContent = charger.usage;
@@ -1098,9 +1098,9 @@
     var mainLevel = connectors.length > 0 ? connectors[0].level : null;
     var connectorJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.type; })) : mainConnector;
     var levelJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.level; })) : mainLevel;
-    var powerJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.power; })) : (connectors[0] ? connectors[0].power : null);
+    var powerJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.power; })) : (connectors[0] && connectors[0].power ? connectors[0].power : null);
 
-    var power = document.getElementById('station-power').value;
+    var points = document.getElementById('station-points').value;
     var points = document.getElementById('station-points').value;
     var cost = document.getElementById('station-cost').value;
     var operator = document.getElementById('station-operator').value.trim();
@@ -1435,11 +1435,13 @@
     document.querySelectorAll('#edit-connector-rows .connector-row').forEach(function(row) {
       connectors.push({
         type: row.querySelector('.conn-type').value,
-        level: row.querySelector('.conn-level').value
+        level: row.querySelector('.conn-level').value,
+        power: parseFloat(row.querySelector('.conn-power').value) || null
       });
     });
     var connJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.type; })) : (connectors[0] ? connectors[0].type : null);
     var lvlJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.level; })) : (connectors[0] ? connectors[0].level : null);
+    var pwJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.power; })) : (connectors[0] && connectors[0].power ? connectors[0].power : null);
 
     var data = {
       name: name,
@@ -1448,7 +1450,7 @@
       lng: parseFloat(document.getElementById('edit-charger-lng').value) || currentCharger.lng,
       connector: connJson || origConn.type || null,
       level: lvlJson || origConn.level || null,
-      power_kw: parseFloat(document.getElementById('edit-charger-power').value) || origConn.powerKW || null,
+      power_kw: pwJson,
       points: parseInt(document.getElementById('edit-charger-points').value) || currentCharger.numberOfPoints || null,
       cost: document.getElementById('edit-charger-cost').value || currentCharger.cost || null,
       operator: document.getElementById('edit-charger-operator').value.trim() || currentCharger.operator || null,
@@ -1804,7 +1806,6 @@
           '<div class="form-group"><label>Nombre</label><input type="text" id="edit-st-name" value="' + (station.name || '') + '" /></div>' +
           '<div class="form-group"><label>Dirección</label><input type="text" id="edit-st-address" value="' + (station.address || '') + '" /></div>' +
           '<div class="new-station-row">' +
-            '<div class="form-group" style="flex:1;"><label>Potencia (kW)</label><input type="number" id="edit-st-power" value="' + (station.power_kw || '') + '" /></div>' +
             '<div class="form-group" style="flex:1;"><label>Puntos</label><input type="number" id="edit-st-points" value="' + (station.points || 1) + '" /></div>' +
             '<div class="form-group" style="flex:1;"><label>Costo</label><select id="edit-st-cost"><option value="">Seleccionar</option><option value="Gratis"' + (station.cost === 'Gratis' ? ' selected' : '') + '>Gratis</option><option value="De pago"' + (station.cost === 'De pago' ? ' selected' : '') + '>De pago</option><option value="Desconocido"' + (station.cost === 'Desconocido' ? ' selected' : '') + '>No sé</option></select></div>' +
           '</div>' +
@@ -1867,16 +1868,17 @@
         document.getElementById('btn-save-station').addEventListener('click', async function() {
           var editConns = [];
           adminConnContainer.querySelectorAll('.connector-row').forEach(function(r) {
-            editConns.push({ type: r.querySelector('.conn-type').value, level: r.querySelector('.conn-level').value });
+            editConns.push({ type: r.querySelector('.conn-type').value, level: r.querySelector('.conn-level').value, power: parseFloat(r.querySelector('.conn-power').value) || null });
           });
           var editConnJson = editConns.length > 1 ? JSON.stringify(editConns.map(function(c) { return c.type; })) : (editConns[0] ? editConns[0].type : null);
           var editLvlJson = editConns.length > 1 ? JSON.stringify(editConns.map(function(c) { return c.level; })) : (editConns[0] ? editConns[0].level : null);
+          var editPwJson = editConns.length > 1 ? JSON.stringify(editConns.map(function(c) { return c.power; })) : (editConns[0] && editConns[0].power ? editConns[0].power : null);
           await SupabaseApp.updateStation(station.id, {
             name: document.getElementById('edit-st-name').value,
             address: document.getElementById('edit-st-address').value,
             connector: editConnJson || null,
             level: editLvlJson || null,
-            power_kw: parseFloat(document.getElementById('edit-st-power').value) || null,
+            power_kw: editPwJson,
             points: parseInt(document.getElementById('edit-st-points').value) || null,
             cost: document.getElementById('edit-st-cost').value || null,
             operator: document.getElementById('edit-st-operator').value || null,
@@ -1908,7 +1910,6 @@
           '<div class="form-group"><label>Nombre *</label><input type="text" id="new-st-name" placeholder="Nombre de la estación" /></div>' +
           '<div class="form-group"><label>Dirección</label><input type="text" id="new-st-address" placeholder="Dirección completa" /></div>' +
           '<div class="new-station-row">' +
-            '<div class="form-group" style="flex:1;"><label>Potencia (kW)</label><input type="number" id="new-st-power" placeholder="Ej: 50" min="0" /></div>' +
             '<div class="form-group" style="flex:1;"><label>Puntos</label><input type="number" id="new-st-points" min="1" max="20" value="1" /></div>' +
             '<div class="form-group" style="flex:1;"><label>Costo</label><select id="new-st-cost"><option value="Gratis">Gratis</option><option value="De pago">De pago</option><option value="Desconocido">No sé</option></select></div>' +
           '</div>' +
