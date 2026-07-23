@@ -180,18 +180,20 @@
     else if (charger.statusId === 20 || charger.statusId === 150) { sb.classList.add('non-operational'); st.textContent = 'No operativo'; }
     else { sb.classList.add('unknown'); st.textContent = 'Desconocido'; }
 
-    document.getElementById('charger-connectors').textContent = charger.connections.map(function(c) { return c.type; }).filter(function(v, i, a) { return a.indexOf(v) === i; }).join(', ') || 'N/A';
-    document.getElementById('charger-power').textContent = charger.connections.map(function(c) { return c.powerKW || 0; }).sort(function(a, b) { return b - a; })[0] + ' kW' || 'N/A';
-    document.getElementById('charger-level').textContent = charger.connections.map(function(c) { return c.level; }).filter(function(v, i, a) { return v && v !== 'N/A' && a.indexOf(v) === i; }).sort(function(a, b) { var o = { 'DC Rápida': 3, 'Nivel 2': 2, 'Nivel 1': 1 }; return (o[b] || 0) - (o[a] || 0); })[0] || 'N/A';
     document.getElementById('charger-points').textContent = charger.numberOfPoints || 'N/A';
     document.getElementById('charger-cost').textContent = formatCost(charger.cost);
-    document.getElementById('charger-usage').textContent = charger.usage;
-    document.getElementById('charger-network').textContent = charger.network || charger.operator;
+    document.getElementById('charger-usage').textContent = charger.usage || 'Público';
 
+    // Render connector cards in 2 columns
     var cl = document.getElementById('charger-connections-list');
-    cl.innerHTML = charger.connections.map(function(conn) {
-      return '<div class="connection-item"><div class="connection-type">' + conn.type + '</div><div class="connection-power">' + (conn.powerKW ? conn.powerKW + ' kW' : 'N/A') + '</div><div class="connection-level">' + conn.level + '</div></div>';
-    }).join('');
+    cl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+      charger.connections.map(function(conn) {
+        return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;">' +
+          '<div style="font-weight:600;font-size:14px;color:var(--text);margin-bottom:4px;">' + (conn.type || 'N/A') + '</div>' +
+          '<div style="font-size:13px;color:var(--accent);font-weight:600;">' + (conn.powerKW ? conn.powerKW + ' kW' : 'N/A') + '</div>' +
+          '<div style="font-size:12px;color:var(--text-muted);">' + (conn.level || 'N/A') + '</div>' +
+        '</div>';
+      }).join('') + '</div>';
 
     // Distance
     document.getElementById('charger-distance').textContent = 'Calculando...';

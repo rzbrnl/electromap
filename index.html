@@ -330,7 +330,7 @@
       </div>
 
       <div id="charger-details" class="charger-card">
-        <div class="charger-header">
+        <div class="charger-header" style="text-align:center;">
           <svg class="icon charger-icon" width="32" height="32">
             <use href="#icon-charger"></use>
           </svg>
@@ -338,69 +338,33 @@
           <div class="charger-operator" id="charger-operator">---</div>
         </div>
 
-        <div class="charger-address" id="charger-address">---</div>
+        <div class="charger-address" id="charger-address" style="text-align:center;margin-bottom:8px;">---</div>
 
-        <div class="status-badge" id="charger-status">
+        <div class="status-badge" id="charger-status" style="justify-content:center;">
           <span class="status-dot"></span>
           <span id="status-text">---</span>
         </div>
 
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label"><svg class="icon" width="12" height="12"><use href="#icon-plug"></use></svg> Conectores</div>
-            <div class="stat-value" id="charger-connectors">---</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label"><svg class="icon" width="12" height="12"><use href="#icon-power"></use></svg> Potencia</div>
-            <div class="stat-value" id="charger-power">---</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label"><svg class="icon" width="12" height="12"><use href="#icon-battery"></use></svg> Nivel</div>
-            <div class="stat-value" id="charger-level">---</div>
-          </div>
+        <div class="stats-grid" style="margin-top:12px;">
           <div class="stat-item">
             <div class="stat-label"><svg class="icon" width="12" height="12"><use href="#icon-location"></use></svg> Distancia</div>
             <div class="stat-value" id="charger-distance">---</div>
             <div class="stat-sub" id="charger-duration" style="display: none; font-size: 11px; color: var(--text-muted); margin-top: 2px;"></div>
           </div>
           <div class="stat-item">
-            <div class="stat-label"><svg class="icon" width="12" height="12"><use href="#icon-charger"></use></svg> Puntos</div>
-            <div class="stat-value" id="charger-points">---</div>
-          </div>
-          <div class="stat-item">
             <div class="stat-label"><svg class="icon" width="12" height="12"><use href="#icon-power"></use></svg> Costo</div>
             <div class="stat-value" id="charger-cost">---</div>
           </div>
         </div>
-
-        <div id="charger-photos" class="charger-photos" style="display: none">
-          <div class="photos-title">Fotos</div>
-          <div class="photos-grid" id="photos-grid"></div>
-        </div>
-
-        <div id="charger-extra" style="display: none">
-          <div
-            style="
-              font-size: 12px;
-              color: var(--text-muted);
-              margin: 16px 0 8px;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-            "
-          >
-            Información adicional
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label"><svg class="icon" width="12" height="12"><use href="#icon-charger"></use></svg> Puntos</div>
+            <div class="stat-value" id="charger-points">---</div>
           </div>
-          <div class="stats-grid">
-            <div class="stat-item">
-              <div class="stat-label">Uso</div>
-              <div class="stat-value" id="charger-usage">---</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">Operador</div>
-              <div class="stat-value" id="charger-network">---</div>
-            </div>
+          <div class="stat-item">
+            <div class="stat-label">Uso</div>
+            <div class="stat-value" id="charger-usage">---</div>
           </div>
-          <div id="charger-connections-list" style="margin-top: 12px"></div>
         </div>
 
         <button class="more-info-btn" id="btn-more-info">
@@ -409,6 +373,15 @@
           </svg>
           Más información
         </button>
+
+        <div id="charger-extra" style="display: none">
+          <div id="charger-connections-list" style="margin-top: 12px;"></div>
+        </div>
+
+        <div id="charger-photos" class="charger-photos" style="display: none">
+          <div class="photos-title">Fotos</div>
+          <div class="photos-grid" id="photos-grid"></div>
+        </div>
 
         <button class="navigate-btn" id="btn-navigate">
           <svg class="icon" width="16" height="16"><use href="#icon-navigation"></use></svg>
