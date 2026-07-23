@@ -2085,6 +2085,7 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 10px 12px;
   background: var(--surface);
   border-radius: var(--radius-sm);
@@ -2095,6 +2096,7 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
 }
 
 .admin-row-name {
@@ -2106,6 +2108,7 @@ textarea:focus {
 .admin-row-sub {
   font-size: 11px;
   color: var(--text-muted);
+  word-break: break-all;
 }
 
 .admin-role-badge {
@@ -2134,6 +2137,7 @@ textarea:focus {
   color: var(--text);
   font-size: 12px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .admin-search {
