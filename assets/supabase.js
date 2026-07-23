@@ -244,11 +244,12 @@ var SupabaseApp = (function() {
   // === ADMIN ===
   async function isAdmin(userId) {
     if (!client) return false;
-    const { data } = await client.from('user_profiles')
-      .select('role')
-      .eq('id', userId)
-      .single();
-    return data && data.role === 'admin';
+    try {
+      const { data } = await client.rpc('is_admin');
+      return data === true;
+    } catch (e) {
+      return false;
+    }
   }
 
   async function getDashboardStats() {
