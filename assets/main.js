@@ -374,25 +374,133 @@
   }
 
   // === AUTH VIEWS ===
+  function buildLoginForm() {
+    return '<form id="auth-form">' +
+      '<div class="form-group"><label for="auth-email">Correo electrónico</label><input type="email" id="auth-email" placeholder="tu@email.com" required /></div>' +
+      '<div class="form-group"><label for="auth-password">Contraseña</label><input type="password" id="auth-password" placeholder="••••••••" required autocomplete="current-password" /></div>' +
+      '<button type="submit" class="btn-primary" id="auth-submit">Iniciar sesión</button>' +
+      '<p class="auth-toggle"><a href="#" id="forgot-password">¿Olvidaste tu contraseña?</a></p>' +
+      '<p class="auth-toggle">¿No tienes cuenta? <a href="#" id="toggle-auth">Regístrate</a></p>' +
+      '<div id="auth-error" class="error-msg hidden"></div></form>';
+  }
+
+  function buildSignupForm() {
+    return '<form id="signup-form" class="hidden">' +
+      '<div class="form-group"><label for="signup-name">Nombre</label><input type="text" id="signup-name" placeholder="Tu nombre" required /></div>' +
+      '<div class="form-group"><label for="signup-email">Correo electrónico</label><input type="email" id="signup-email" placeholder="tu@email.com" required /></div>' +
+      '<div class="form-group"><label for="signup-password">Contraseña</label><input type="password" id="signup-password" placeholder="Mínimo 6 caracteres" required minlength="6" />' +
+      '<div id="password-strength" class="password-strength hidden"><div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div><span class="strength-text" id="strength-text"></span></div></div>' +
+      '<div class="form-group"><label for="signup-confirm">Confirmar contraseña</label><input type="password" id="signup-confirm" placeholder="Repite tu contraseña" required minlength="6" />' +
+      '<div id="password-match" class="password-match hidden"></div></div>' +
+      '<button type="submit" class="btn-primary" id="signup-submit">Crear cuenta</button>' +
+      '<p class="auth-toggle">¿Ya tienes cuenta? <a href="#" id="toggle-to-login">Inicia sesión</a></p>' +
+      '<div id="signup-error" class="error-msg hidden"></div></form>';
+  }
+
+  function buildForgotForm() {
+    return '<form id="forgot-form" class="hidden">' +
+      '<div class="form-group"><label for="forgot-email">Correo electrónico</label><input type="email" id="forgot-email" placeholder="tu@email.com" required /></div>' +
+      '<button type="submit" class="btn-primary" id="forgot-submit">Enviar enlace</button>' +
+      '<p class="auth-toggle"><a href="#" id="back-to-login">← Volver a iniciar sesión</a></p>' +
+      '<div id="forgot-error" class="error-msg hidden"></div></form>';
+  }
+
+  function buildResetForm() {
+    return '<form id="reset-form" class="hidden">' +
+      '<div class="form-group"><label for="reset-password">Nueva contraseña</label><input type="password" id="reset-password" placeholder="Mínimo 6 caracteres" required minlength="6" />' +
+      '<div id="reset-strength" class="password-strength hidden"><div class="strength-bar"><div class="strength-fill" id="reset-strength-fill"></div></div><span class="strength-text" id="reset-strength-text"></span></div></div>' +
+      '<div class="form-group"><label for="reset-confirm">Confirmar contraseña</label><input type="password" id="reset-confirm" placeholder="Repite tu contraseña" required minlength="6" />' +
+      '<div id="reset-match" class="password-match hidden"></div></div>' +
+      '<button type="submit" class="btn-primary" id="reset-submit">Guardar contraseña</button>' +
+      '<div id="reset-error" class="error-msg hidden"></div></form>';
+  }
+
+  function rebindAuthEvents() {
+    var af = document.getElementById('auth-form');
+    if (af) af.addEventListener('submit', handleLogin);
+    var sf = document.getElementById('signup-form');
+    if (sf) sf.addEventListener('submit', handleSignup);
+    var ff = document.getElementById('forgot-form');
+    if (ff) ff.addEventListener('submit', handleForgotPassword);
+    var rf = document.getElementById('reset-form');
+    if (rf) rf.addEventListener('submit', handleResetPassword);
+    var ta = document.getElementById('toggle-auth');
+    if (ta) ta.addEventListener('click', function(e) { e.preventDefault(); showAuthView('signup'); });
+    var tl = document.getElementById('toggle-to-login');
+    if (tl) tl.addEventListener('click', function(e) { e.preventDefault(); showAuthView('login'); });
+    var fp = document.getElementById('forgot-password');
+    if (fp) fp.addEventListener('click', function(e) { e.preventDefault(); showAuthView('forgot'); });
+    var bl = document.getElementById('back-to-login');
+    if (bl) bl.addEventListener('click', function(e) { e.preventDefault(); showAuthView('login'); });
+    var sp = document.getElementById('signup-password');
+    if (sp) sp.addEventListener('input', function() { updatePasswordStrength(this.value); });
+    var sc = document.getElementById('signup-confirm');
+    if (sc) sc.addEventListener('input', function() {
+      var pw = document.getElementById('signup-password').value;
+      var el = document.getElementById('password-match');
+      if (!this.value) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      if (this.value === pw) { el.textContent = 'Las contraseñas coinciden'; el.className = 'password-match valid'; }
+      else { el.textContent = 'Las contraseñas no coinciden'; el.className = 'password-match invalid'; }
+    });
+    var rp = document.getElementById('reset-password');
+    if (rp) rp.addEventListener('input', function() {
+      var pw = this.value;
+      var bar = document.getElementById('reset-strength-fill');
+      var text = document.getElementById('reset-strength-text');
+      var container = document.getElementById('reset-strength');
+      if (!pw) { container.classList.add('hidden'); return; }
+      container.classList.remove('hidden');
+      var score = 0;
+      if (pw.length >= 6) score++;
+      if (pw.length >= 10) score++;
+      if (/[A-Z]/.test(pw)) score++;
+      if (/[0-9]/.test(pw)) score++;
+      if (/[^A-Za-z0-9]/.test(pw)) score++;
+      var levels = [{w:'20%',c:'#ef4444',l:'Muy débil'},{w:'40%',c:'#f97316',l:'Débil'},{w:'60%',c:'#f59e0b',l:'Regular'},{w:'80%',c:'#22c55e',l:'Buena'},{w:'100%',c:'#16a34a',l:'Muy fuerte'}];
+      var lv = levels[Math.min(score, 4)];
+      bar.style.width = lv.w; bar.style.background = lv.c;
+      text.textContent = lv.l; text.style.color = lv.c;
+    });
+    var rc = document.getElementById('reset-confirm');
+    if (rc) rc.addEventListener('input', function() {
+      var pw = document.getElementById('reset-password').value;
+      var el = document.getElementById('reset-match');
+      if (!this.value) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      if (this.value === pw) { el.textContent = 'Las contraseñas coinciden'; el.className = 'password-match valid'; }
+      else { el.textContent = 'Las contraseñas no coinciden'; el.className = 'password-match invalid'; }
+    });
+  }
+
   function showAuthView(view) {
-    document.getElementById('auth-form').classList.add('hidden');
-    document.getElementById('signup-form').classList.add('hidden');
-    document.getElementById('forgot-form').classList.add('hidden');
-    document.getElementById('reset-form').classList.add('hidden');
-    document.getElementById('auth-error').classList.add('hidden');
-    document.getElementById('signup-error').classList.add('hidden');
-    document.getElementById('forgot-error').classList.add('hidden');
-    document.getElementById('reset-error').classList.add('hidden');
+    var el;
+    el = document.getElementById('auth-form'); if (el) el.classList.add('hidden');
+    el = document.getElementById('signup-form'); if (el) el.classList.add('hidden');
+    el = document.getElementById('forgot-form'); if (el) el.classList.add('hidden');
+    el = document.getElementById('reset-form'); if (el) el.classList.add('hidden');
+    el = document.getElementById('auth-error'); if (el) el.classList.add('hidden');
+    el = document.getElementById('signup-error'); if (el) el.classList.add('hidden');
+    el = document.getElementById('forgot-error'); if (el) el.classList.add('hidden');
+    el = document.getElementById('reset-error'); if (el) el.classList.add('hidden');
+
+    // If form elements were destroyed (e.g. by admin dashboard), rebuild the auth forms
+    var form = document.getElementById('auth-form');
+    if (form && !document.getElementById('signup-form')) {
+      form.innerHTML = buildLoginForm() + buildSignupForm() + buildForgotForm() + buildResetForm();
+      rebindAuthEvents();
+    }
+
     if (view === 'login') {
-      document.getElementById('auth-form').classList.remove('hidden');
+      el = document.getElementById('auth-form'); if (el) el.classList.remove('hidden');
       document.getElementById('auth-title').textContent = 'Iniciar sesión';
       document.getElementById('auth-subtitle').textContent = 'Bienvenido de nuevo a ElectroMap';
     } else if (view === 'signup') {
-      document.getElementById('signup-form').classList.remove('hidden');
+      el = document.getElementById('signup-form'); if (el) el.classList.remove('hidden');
       document.getElementById('auth-title').textContent = 'Crear cuenta';
       document.getElementById('auth-subtitle').textContent = 'Únete a la comunidad ElectroMap';
     } else if (view === 'forgot') {
-      document.getElementById('forgot-form').classList.remove('hidden');
+      el = document.getElementById('forgot-form'); if (el) el.classList.remove('hidden');
       document.getElementById('auth-title').textContent = 'Recuperar contraseña';
       document.getElementById('auth-subtitle').textContent = 'Te enviaremos un enlace para restablecerla';
     } else if (view === 'reset') {
@@ -823,10 +931,13 @@
     var modal = document.getElementById('auth-modal');
     var title = document.getElementById('auth-title');
     var form = document.getElementById('auth-form');
+    var content = modal.querySelector('.modal-content');
     var initial = user.email ? user.email[0].toUpperCase() : 'U';
 
+    if (content) content.classList.remove('modal-content-wide');
     title.textContent = 'Mi perfil';
-    document.getElementById('auth-subtitle').textContent = 'Bienvenido de nuevo a ElectroMap';
+    var subtitleEl = document.getElementById('auth-subtitle');
+    if (subtitleEl) subtitleEl.textContent = 'Bienvenido de nuevo a ElectroMap';
     form.innerHTML =
       '<div style="text-align:center;padding-bottom:4px;">' +
         '<div class="profile-avatar-upload" id="avatar-upload-area" style="margin-bottom:12px;">' +
@@ -1002,9 +1113,13 @@
     var title = document.getElementById('auth-title');
     var subtitle = document.getElementById('auth-subtitle');
     var form = document.getElementById('auth-form');
+    var content = modal.querySelector('.modal-content');
 
+    content.classList.add('modal-content-wide');
     title.textContent = 'Admin Dashboard';
-    subtitle.textContent = '';
+    subtitle.innerHTML = '<a href="#" id="admin-back-to-profile" style="color:var(--accent);text-decoration:none;font-size:12px;">← Volver al perfil</a>';
+
+    form.innerHTML =
 
     form.innerHTML =
       '<div class="admin-layout">' +
@@ -1019,6 +1134,16 @@
       '</div>';
     form.classList.remove('hidden');
     modal.classList.remove('hidden');
+
+    // Back to profile
+    var backLink = document.getElementById('admin-back-to-profile');
+    if (backLink) {
+      backLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        content.classList.remove('modal-content-wide');
+        toggleAuthModal();
+      });
+    }
 
     // Tab navigation
     form.querySelectorAll('.admin-nav').forEach(function(nav) {
