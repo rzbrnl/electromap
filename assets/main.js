@@ -994,31 +994,53 @@
     searchDiv.appendChild(input);
     mapContainer.insertBefore(searchDiv, mapContainer.firstChild);
 
-    function doSearch(query) {
-      if (!query) return;
-      fetch('/api/places?type=autocomplete&q=' + encodeURIComponent(query))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.status === 'OK' && data.results && data.results.length > 0) {
-            var r = data.results[0];
-            var lat = r.geometry.location.lat;
-            var lng = r.geometry.location.lng;
-            marker.setLatLng([lat, lng]);
-            map.setView([lat, lng], 16);
-            document.getElementById(latFieldId).value = lat;
-            document.getElementById(lngFieldId).value = lng;
-            document.getElementById(addressFieldId).value = r.formatted_address;
-          } else {
-            showToast('No se encontró la dirección');
-          }
-        }).catch(function() { showToast('Error al buscar'); });
-    }
+    var suggestionsDiv = document.createElement('div');
+    suggestionsDiv.style.cssText = 'position:absolute;top:38px;left:0;right:0;background:var(--surface);border-radius:0 0 var(--radius-sm) var(--radius-sm);box-shadow:0 4px 12px rgba(0,0,0,0.3);display:none;z-index:1001;max-height:200px;overflow-y:auto;';
+    searchDiv.appendChild(suggestionsDiv);
 
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        doSearch(input.value.trim());
-      }
+    var searchTimeout;
+    input.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      var query = input.value.trim();
+      if (query.length < 3) { suggestionsDiv.style.display = 'none'; return; }
+      searchTimeout = setTimeout(function() {
+        fetch('/api/places?type=autocomplete&q=' + encodeURIComponent(query))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
+              suggestionsDiv.innerHTML = data.predictions.map(function(p, i) {
+                return '<div class="suggestion-item" data-index="' + i + '" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);color:var(--text);">' + p.description + '</div>';
+              }).join('');
+              suggestionsDiv.style.display = 'block';
+              suggestionsDiv.querySelectorAll('.suggestion-item').forEach(function(item) {
+                item.addEventListener('click', function() {
+                  var idx = parseInt(this.dataset.index);
+                  var pred = data.predictions[idx];
+                  input.value = pred.description;
+                  suggestionsDiv.style.display = 'none';
+                  fetch('/api/places?type=details&place_id=' + pred.place_id)
+                    .then(function(r2) { return r2.json(); })
+                    .then(function(details) {
+                      if (details.status === 'OK' && details.result && details.result.geometry) {
+                        var loc = details.result.geometry.location;
+                        marker.setLatLng([loc.lat, loc.lng]);
+                        map.setView([loc.lat, loc.lng], 16);
+                        document.getElementById(latFieldId).value = loc.lat;
+                        document.getElementById(lngFieldId).value = loc.lng;
+                        document.getElementById(addressFieldId).value = details.result.formatted_address || pred.description;
+                      }
+                    }).catch(function() {});
+                });
+              });
+            } else {
+              suggestionsDiv.style.display = 'none';
+            }
+          }).catch(function() { suggestionsDiv.style.display = 'none'; });
+      }, 300);
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!searchDiv.contains(e.target)) suggestionsDiv.style.display = 'none';
     });
   }
 
