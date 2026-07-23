@@ -13,7 +13,6 @@
   function init() {
     ChargerMap.init(onChargerSelect);
     SupabaseApp.init();
-    loadGoogleKey();
     checkResetToken();
     loadSavedTheme();
     setupEventListeners();
@@ -972,19 +971,8 @@
 
   var googleMapsKey = '';
 
-  async function loadGoogleKey() {
-    try {
-      var resp = await fetch('/api/config');
-      if (resp.ok) {
-        var config = await resp.json();
-        googleMapsKey = config.GOOGLE_MAPS_KEY || '';
-      }
-    } catch (e) {}
-  }
-
   function reverseGeocode(lat, lng, addressFieldId) {
-    if (!googleMapsKey) return;
-    fetch('https://maps.googleapis.com/maps/api/geocode/json?latlng=' + lat + ',' + lng + '&key=' + googleMapsKey + '&language=es')
+    fetch('/api/places?type=reverse&lat=' + lat + '&lng=' + lng)
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.status === 'OK' && data.results && data.results[0]) {
@@ -1006,7 +994,6 @@
     searchDiv.appendChild(input);
     mapContainer.insertBefore(searchDiv, mapContainer.firstChild);
 
-    // Suggestions list
     var suggestionsDiv = document.createElement('div');
     suggestionsDiv.style.cssText = 'position:absolute;top:38px;left:0;right:0;background:var(--surface);border-radius:0 0 var(--radius-sm) var(--radius-sm);box-shadow:0 4px 12px rgba(0,0,0,0.3);display:none;z-index:1001;max-height:200px;overflow-y:auto;';
     searchDiv.appendChild(suggestionsDiv);
@@ -1017,13 +1004,12 @@
       var query = input.value.trim();
       if (query.length < 3) { suggestionsDiv.style.display = 'none'; return; }
       searchTimeout = setTimeout(function() {
-        if (!googleMapsKey) return;
-        fetch('https://maps.googleapis.com/maps/api/place/autocomplete/json?input=' + encodeURIComponent(query) + '&components=country:mx&key=' + googleMapsKey + '&language=es')
+        fetch('/api/places?type=autocomplete&q=' + encodeURIComponent(query))
           .then(function(r) { return r.json(); })
           .then(function(data) {
             if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
               suggestionsDiv.innerHTML = data.predictions.map(function(p, i) {
-                return '<div class="suggestion-item" data-index="' + i + '" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);">' + p.description + '</div>';
+                return '<div class="suggestion-item" data-index="' + i + '" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);color:var(--text);">' + p.description + '</div>';
               }).join('');
               suggestionsDiv.style.display = 'block';
               suggestionsDiv.querySelectorAll('.suggestion-item').forEach(function(item) {
@@ -1032,8 +1018,7 @@
                   var prediction = data.predictions[idx];
                   input.value = prediction.description;
                   suggestionsDiv.style.display = 'none';
-                  // Get place details
-                  fetch('https://maps.googleapis.com/maps/api/place/details/json?place_id=' + prediction.place_id + '&key=' + googleMapsKey + '&fields=geometry,formatted_address')
+                  fetch('/api/places?type=details&place_id=' + prediction.place_id)
                     .then(function(r2) { return r2.json(); })
                     .then(function(details) {
                       if (details.status === 'OK' && details.result && details.result.geometry) {
@@ -1054,18 +1039,16 @@
       }, 300);
     });
 
-    // Close suggestions when clicking outside
     document.addEventListener('click', function(e) {
       if (!searchDiv.contains(e.target)) suggestionsDiv.style.display = 'none';
     });
 
-    // Enter key geocodes the current text
     input.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
         suggestionsDiv.style.display = 'none';
-        if (!googleMapsKey || !input.value.trim()) return;
-        fetch('https://maps.googleapis.com/maps/api/geocode/json?address=' + encodeURIComponent(input.value.trim()) + '&components=country:mx&key=' + googleMapsKey + '&language=es')
+        if (!input.value.trim()) return;
+        fetch('/api/places?type=geocode&address=' + encodeURIComponent(input.value.trim()))
           .then(function(r) { return r.json(); })
           .then(function(data) {
             if (data.status === 'OK' && data.results && data.results[0]) {
