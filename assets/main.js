@@ -388,6 +388,7 @@
     var comments = await SupabaseApp.getComments(charger.id);
     var list = document.getElementById('comments-list');
     var ratingEl = document.getElementById('charger-rating');
+    var user = await getCurrentUser();
 
     if (comments.length === 0) {
       list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px 0;">No hay reseñas aún</div>';
@@ -401,8 +402,77 @@
     list.innerHTML = comments.map(function(c) {
       var stars = c.rating ? '★'.repeat(c.rating) + '☆'.repeat(5 - c.rating) : '';
       var date = c.created_at ? new Date(c.created_at).toLocaleDateString('es-MX') : '';
-      return '<div class="comment-item"><div class="comment-header"><span class="comment-author">' + (c.user_name || 'Anónimo') + '</span><span class="comment-stars">' + stars + '</span></div><div class="comment-text">' + (c.comment || '') + '</div><div class="comment-date">' + date + '</div></div>';
+      var isOwn = user && c.user_id === user.id;
+      var actions = isOwn ? '<div class="comment-actions"><button class="comment-action-btn" data-action="edit" data-id="' + c.id + '" data-rating="' + (c.rating || 0) + '" data-text="' + (c.comment || '').replace(/"/g, '&quot;') + '">Editar</button><button class="comment-action-btn danger" data-action="delete" data-id="' + c.id + '">Eliminar</button></div>' : '';
+      return '<div class="comment-item" data-id="' + c.id + '"><div class="comment-header"><span class="comment-author">' + (c.user_name || 'Anónimo') + '</span><span class="comment-stars">' + stars + '</span></div><div class="comment-text">' + (c.comment || '') + '</div><div class="comment-date">' + date + '</div>' + actions + '</div>';
     }).join('');
+
+    list.querySelectorAll('.comment-action-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var action = this.dataset.action;
+        var id = this.dataset.id;
+        if (action === 'delete') deleteComment(id);
+        else if (action === 'edit') startEditComment(id, parseInt(this.dataset.rating), this.dataset.text);
+      });
+    });
+  }
+
+  async function deleteComment(commentId) {
+    if (!confirm('¿Eliminar esta reseña?')) return;
+    var ok = await SupabaseApp.deleteComment(commentId);
+    if (ok) {
+      showToast('Reseña eliminada');
+      if (currentCharger) loadComments(currentCharger);
+    } else {
+      showToast('Error al eliminar');
+    }
+  }
+
+  function startEditComment(commentId, currentRating, currentText) {
+    var list = document.getElementById('comments-list');
+    var existing = document.getElementById('edit-comment-form');
+    if (existing) existing.remove();
+
+    var form = document.createElement('div');
+    form.id = 'edit-comment-form';
+    form.className = 'comment-item';
+    form.style.borderColor = 'var(--accent)';
+    form.innerHTML =
+      '<div class="star-rating" id="edit-star-rating">' +
+        [1,2,3,4,5].map(function(v) { return '<span class="star' + (v <= currentRating ? ' active' : '') + '" data-value="' + v + '">★</span>'; }).join('') +
+      '</div>' +
+      '<textarea id="edit-comment-text" rows="2" style="width:100%;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:inherit;margin-bottom:8px;">' + currentText + '</textarea>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button class="btn-primary btn-sm" id="btn-save-edit" data-id="' + commentId + '">Guardar</button>' +
+        '<button class="btn-sm" id="btn-cancel-edit" style="background:var(--surface);color:var(--text);border:1px solid var(--border);">Cancelar</button>' +
+      '</div>';
+
+    list.insertBefore(form, list.firstChild);
+
+    var editRating = currentRating;
+    form.querySelectorAll('#edit-star-rating .star').forEach(function(s) {
+      s.addEventListener('click', function() {
+        editRating = parseInt(this.dataset.value);
+        form.querySelectorAll('#edit-star-rating .star').forEach(function(st) {
+          st.classList.toggle('active', parseInt(st.dataset.value) <= editRating);
+        });
+      });
+    });
+
+    document.getElementById('btn-save-edit').addEventListener('click', async function() {
+      var text = document.getElementById('edit-comment-text').value.trim();
+      var ok = await SupabaseApp.updateComment(this.dataset.id, editRating || null, text);
+      if (ok) {
+        showToast('Reseña actualizada');
+        if (currentCharger) loadComments(currentCharger);
+      } else {
+        showToast('Error al actualizar');
+      }
+    });
+
+    document.getElementById('btn-cancel-edit').addEventListener('click', function() {
+      form.remove();
+    });
   }
 
   async function submitComment() {
@@ -421,6 +491,9 @@
       updateStarRating(0);
       loadComments(currentCharger);
       showToast('Comentario enviado');
+      // Update profile comment count if modal is open
+      var countEl = document.getElementById('profile-comment-count');
+      if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
     } else {
       showToast('Error al enviar comentario');
     }
@@ -441,11 +514,48 @@
       grid.innerHTML = '';
       return;
     }
+    var user = await getCurrentUser();
     grid.innerHTML = photos.map(function(p) {
-      return '<img src="' + p.url + '" alt="' + (p.caption || 'Foto') + '" loading="lazy" onerror="this.style.display=\'none\'" class="community-photo-thumb">';
+      var del = user && p.user_id === user.id ? '<button class="photo-delete-btn" data-id="' + p.id + '">×</button>' : '';
+      return '<div class="photo-thumb-wrap"><img src="' + p.url + '" alt="' + (p.caption || 'Foto') + '" loading="lazy" onerror="this.parentElement.style.display=\'none\'" class="community-photo-thumb">' + del + '</div>';
     }).join('');
     grid.querySelectorAll('.community-photo-thumb').forEach(function(img) {
       img.addEventListener('click', function() { openLightbox(this.src); });
+    });
+    grid.querySelectorAll('.photo-delete-btn').forEach(function(btn) {
+      btn.addEventListener('click', async function(e) {
+        e.stopPropagation();
+        if (!confirm('¿Eliminar esta foto?')) return;
+        var ok = await SupabaseApp.deletePhoto(this.dataset.id);
+        if (ok) {
+          showToast('Foto eliminada');
+          loadCommunityPhotos(currentCharger);
+        }
+      });
+    });
+  }
+
+  // === PROFILE PHOTOS ===
+  async function loadProfilePhotos(userId) {
+    var photos = await SupabaseApp.getUserPhotos(userId);
+    var container = document.getElementById('profile-photos');
+    var countEl = document.getElementById('profile-photo-count');
+    if (countEl) countEl.textContent = photos.length;
+    if (!container) return;
+    if (photos.length === 0) { container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">No has subido fotos aún</div>'; return; }
+    container.innerHTML = photos.map(function(p) {
+      return '<div class="photo-thumb-wrap"><img src="' + p.url + '" class="community-photo-thumb" loading="lazy"><button class="photo-delete-btn" data-id="' + p.id + '">×</button></div>';
+    }).join('');
+    container.querySelectorAll('.community-photo-thumb').forEach(function(img) {
+      img.addEventListener('click', function() { openLightbox(this.src); });
+    });
+    container.querySelectorAll('.photo-delete-btn').forEach(function(btn) {
+      btn.addEventListener('click', async function(e) {
+        e.stopPropagation();
+        if (!confirm('¿Eliminar esta foto?')) return;
+        var ok = await SupabaseApp.deletePhoto(this.dataset.id);
+        if (ok) { showToast('Foto eliminada'); loadProfilePhotos(userId); }
+      });
     });
   }
 
@@ -548,6 +658,11 @@
         '<div class="profile-section-title">Estadísticas</div>' +
         '<div class="profile-stat-row"><span class="profile-stat-label">Favoritos</span><span class="profile-stat-value" id="profile-fav-count">0</span></div>' +
         '<div class="profile-stat-row"><span class="profile-stat-label">Reseñas</span><span class="profile-stat-value" id="profile-comment-count">0</span></div>' +
+        '<div class="profile-stat-row"><span class="profile-stat-label">Fotos subidas</span><span class="profile-stat-value" id="profile-photo-count">0</span></div>' +
+      '</div>' +
+      '<div class="profile-section">' +
+        '<div class="profile-section-title">Mis fotos</div>' +
+        '<div id="profile-photos" class="photos-grid"></div>' +
       '</div>' +
       '<button class="btn-primary" id="btn-save-avatar" style="background:var(--accent);margin-top:16px;width:100%;display:none;">Guardar foto</button>' +
       '<button class="btn-primary" id="btn-logout" style="background:var(--danger);margin-top:8px;width:100%;">Cerrar sesión</button>';
@@ -562,6 +677,7 @@
       var el = document.getElementById('profile-comment-count');
       if (el) el.textContent = comments.length;
     });
+    loadProfilePhotos(user.id);
 
     var pendingAvatarData = null;
 

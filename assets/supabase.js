@@ -53,6 +53,20 @@ var SupabaseApp = (function() {
     return error ? null : data[0];
   }
 
+  async function updateComment(commentId, rating, comment) {
+    if (!client) return false;
+    const { error } = await client.from('comments')
+      .update({ rating: rating, comment: comment })
+      .eq('id', commentId);
+    return !error;
+  }
+
+  async function deleteComment(commentId) {
+    if (!client) return false;
+    const { error } = await client.from('comments').delete().eq('id', commentId);
+    return !error;
+  }
+
   async function getAverageRating(chargerId) {
     if (!client) return 0;
     const { data } = await client.from('comments')
@@ -72,6 +86,21 @@ var SupabaseApp = (function() {
       .eq('charger_id', chargerId)
       .order('created_at', { ascending: false });
     return error ? [] : data;
+  }
+
+  async function getUserPhotos(userId) {
+    if (!client) return [];
+    const { data, error } = await client.from('photos')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    return error ? [] : data;
+  }
+
+  async function deletePhoto(photoId) {
+    if (!client) return false;
+    const { error } = await client.from('photos').delete().eq('id', photoId);
+    return !error;
   }
 
   async function addPhoto(chargerId, url, caption) {
@@ -176,8 +205,8 @@ var SupabaseApp = (function() {
 
   return {
     init, getClient,
-    getComments, getCommentsByUser, addComment, getAverageRating,
-    getPhotos, addPhoto,
+    getComments, getCommentsByUser, addComment, updateComment, deleteComment, getAverageRating,
+    getPhotos, getUserPhotos, deletePhoto, addPhoto,
     addReport, getReports,
     getFavorites, toggleFavorite,
     addToHistory, getHistory,
