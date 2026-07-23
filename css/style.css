@@ -1364,7 +1364,13 @@ body {
   padding: 24px;
   width: 100%;
   max-width: 380px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: var(--shadow-lg);
+}
+
+.modal-content-wide {
+  max-width: 440px;
 }
 
 .modal-header {
