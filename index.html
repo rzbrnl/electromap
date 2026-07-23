@@ -788,16 +788,6 @@
             </div>
             <div class="new-station-row">
               <div class="form-group" style="flex:1;">
-                <label>Conector</label>
-                <input type="text" id="edit-charger-connector" />
-              </div>
-              <div class="form-group" style="flex:1;">
-                <label>Nivel</label>
-                <input type="text" id="edit-charger-level" />
-              </div>
-            </div>
-            <div class="new-station-row">
-              <div class="form-group" style="flex:1;">
                 <label>Potencia (kW)</label>
                 <input type="number" id="edit-charger-power" />
               </div>
@@ -807,8 +797,17 @@
               </div>
               <div class="form-group" style="flex:1;">
                 <label>Costo</label>
-                <input type="text" id="edit-charger-cost" />
+                <select id="edit-charger-cost">
+                  <option value="">Seleccionar</option>
+                  <option value="Gratis">Gratis</option>
+                  <option value="De pago">De pago</option>
+                  <option value="Desconocido">No sé</option>
+                </select>
               </div>
+            </div>
+            <div class="form-group">
+              <label>Tipo de conector por punto</label>
+              <div id="edit-connector-rows"></div>
             </div>
             <div class="form-group">
               <label>Operador</label>

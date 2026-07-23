@@ -68,16 +68,26 @@
               // Old entry without charger_id but matches a CFE station name — treat as override
               overrideMap[cfeByName[s.name].id] = s;
             } else {
-              // Pure community station
-              var levelId = s.level === 'DC Rápida' ? 3 : s.level === 'Nivel 2' ? 2 : 1;
+              // Pure community station — parse connector arrays
+              var connTypes = [];
+              var lvlNames = [];
+              try { connTypes = JSON.parse(s.connector); } catch(e) { connTypes = s.connector ? [s.connector] : []; }
+              try { lvlNames = JSON.parse(s.level); } catch(e) { lvlNames = s.level ? [s.level] : []; }
+              if (!Array.isArray(connTypes)) connTypes = [connTypes];
+              if (!Array.isArray(lvlNames)) lvlNames = [lvlNames];
+              var connections = connTypes.map(function(ct, i) {
+                var lvl = lvlNames[i] || lvlNames[0] || 'N/A';
+                var levelId = lvl === 'DC Rápida' ? 3 : lvl === 'Nivel 2' ? 2 : 1;
+                return { type: ct || 'N/A', typeId: 0, powerKW: s.power_kw || 0, level: lvl, levelId: levelId };
+              });
+              if (connections.length === 0) connections = [{ type: 'N/A', typeId: 0, powerKW: 0, level: 'N/A', levelId: 1 }];
               communityChargers.push({
                 id: 'approved-' + s.id, name: s.name, address: s.address || '',
                 lat: s.lat, lng: s.lng, country: 'México',
                 operator: s.operator || 'Comunidad', network: s.operator || 'Comunidad',
                 status: s.status || 'Operational', statusId: s.status_id || 50, usage: 'Público',
                 cost: s.cost || 'Desconocido', numberOfPoints: s.points || 1,
-                photos: [],
-                connections: [{ type: s.connector || 'N/A', typeId: 0, powerKW: s.power_kw || 0, level: s.level || 'N/A', levelId: levelId }],
+                photos: [], connections: connections,
                 numConnections: s.points || 1, _approvedId: s.id
               });
             }
@@ -156,7 +166,7 @@
     else if (charger.statusId === 20 || charger.statusId === 150) { sb.classList.add('non-operational'); st.textContent = 'No operativo'; }
     else { sb.classList.add('unknown'); st.textContent = 'Desconocido'; }
 
-    document.getElementById('charger-connectors').textContent = charger.connections.map(function(c) { return c.type; }).join(', ') || 'N/A';
+    document.getElementById('charger-connectors').textContent = charger.connections.map(function(c) { return c.type; }).filter(function(v, i, a) { return a.indexOf(v) === i; }).join(', ') || 'N/A';
     document.getElementById('charger-power').textContent = charger.connections.filter(function(c) { return c.powerKW; }).map(function(c) { return c.powerKW + ' kW'; }).join(', ') || 'N/A';
     document.getElementById('charger-level').textContent = charger.connections.map(function(c) { return c.level; }).filter(function(v, i, a) { return a.indexOf(v) === i; }).join(', ') || 'N/A';
     document.getElementById('charger-points').textContent = charger.numberOfPoints || 'N/A';
@@ -1322,18 +1332,53 @@
     document.getElementById('edit-charger-name').value = charger.name || '';
     document.getElementById('edit-charger-address').value = charger.address || '';
 
-    var conn = charger.connections && charger.connections[0] ? charger.connections[0] : {};
-    document.getElementById('edit-charger-connector').value = conn.type && conn.type !== 'N/A' ? conn.type : '';
-    document.getElementById('edit-charger-level').value = conn.level && conn.level !== 'N/A' ? conn.level : '';
-    document.getElementById('edit-charger-power').value = conn.powerKW || '';
-    document.getElementById('edit-charger-points').value = charger.numberOfPoints || '';
+    // Parse connector data from connections array
+    var conns = charger.connections || [];
+    var points = charger.numberOfPoints || conns.length || 1;
+    document.getElementById('edit-charger-power').value = conns[0] ? conns[0].powerKW || '' : '';
+    document.getElementById('edit-charger-points').value = points;
     document.getElementById('edit-charger-cost').value = charger.cost && charger.cost !== 'Desconocido' ? charger.cost : '';
-    document.getElementById('edit-charger-operator').value = charger.operator && charger.operator !== 'CFE' ? charger.operator : '';
+    document.getElementById('edit-charger-operator').value = charger.operator && charger.operator !== 'CFE' && charger.operator !== 'Comunidad' ? charger.operator : '';
     var statusSel = document.getElementById('edit-charger-status');
     var sid = charger.statusId || 50;
     statusSel.value = (sid === 50 || sid === 10 || sid === 30) ? '50' : (sid === 20 || sid === 150) ? '20' : '0';
     document.getElementById('edit-charger-lat').value = charger.lat;
     document.getElementById('edit-charger-lng').value = charger.lng;
+
+    // Generate connector rows from existing data
+    var connContainer = document.getElementById('edit-connector-rows');
+    connContainer.innerHTML = '';
+    for (var i = 0; i < points; i++) {
+      var c = conns[i] || {};
+      var row = document.createElement('div');
+      row.className = 'connector-row new-station-row';
+      row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
+        '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>';
+      connContainer.appendChild(row);
+      // Set values after adding to DOM
+      var typeSelect = row.querySelector('.conn-type');
+      var levelSelect = row.querySelector('.conn-level');
+      if (c.type && c.type !== 'N/A') typeSelect.value = c.type;
+      if (c.level && c.level !== 'N/A') levelSelect.value = c.level;
+    }
+
+    // Points change handler
+    var pointsInput = document.getElementById('edit-charger-points');
+    pointsInput.oninput = function() {
+      var newCount = parseInt(this.value) || 1;
+      var currentCount = connContainer.querySelectorAll('.connector-row').length;
+      if (newCount > currentCount) {
+        for (var j = currentCount; j < newCount; j++) {
+          var nr = document.createElement('div');
+          nr.className = 'connector-row new-station-row';
+          nr.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
+            '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>';
+          connContainer.appendChild(nr);
+        }
+      } else if (newCount < currentCount) {
+        while (connContainer.children.length > newCount) connContainer.removeChild(connContainer.lastChild);
+      }
+    };
 
     // Init map
     if (editStationMap) { editStationMap.remove(); editStationMap = null; }
@@ -1345,11 +1390,13 @@
       var pos = editStationMarker.getLatLng();
       document.getElementById('edit-charger-lat').value = pos.lat;
       document.getElementById('edit-charger-lng').value = pos.lng;
+      reverseGeocode(pos.lat, pos.lng, 'edit-charger-address');
     });
     editStationMap.on('click', function(e) {
       editStationMarker.setLatLng(e.latlng);
       document.getElementById('edit-charger-lat').value = e.latlng.lat;
       document.getElementById('edit-charger-lng').value = e.latlng.lng;
+      reverseGeocode(e.latlng.lat, e.latlng.lng, 'edit-charger-address');
     });
     setTimeout(function() { editStationMap.invalidateSize(); }, 200);
   }
@@ -1363,16 +1410,27 @@
     var existingApprovedId = currentCharger._approvedId || null;
     var origConn = currentCharger.connections && currentCharger.connections[0] ? currentCharger.connections[0] : {};
 
+    // Get connector data from dynamic rows
+    var connectors = [];
+    document.querySelectorAll('#edit-connector-rows .connector-row').forEach(function(row) {
+      connectors.push({
+        type: row.querySelector('.conn-type').value,
+        level: row.querySelector('.conn-level').value
+      });
+    });
+    var connJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.type; })) : (connectors[0] ? connectors[0].type : null);
+    var lvlJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.level; })) : (connectors[0] ? connectors[0].level : null);
+
     var data = {
       name: name,
       address: document.getElementById('edit-charger-address').value.trim() || currentCharger.address,
       lat: parseFloat(document.getElementById('edit-charger-lat').value) || currentCharger.lat,
       lng: parseFloat(document.getElementById('edit-charger-lng').value) || currentCharger.lng,
-      connector: document.getElementById('edit-charger-connector').value.trim() || origConn.type || null,
-      level: document.getElementById('edit-charger-level').value.trim() || origConn.level || null,
+      connector: connJson || origConn.type || null,
+      level: lvlJson || origConn.level || null,
       power_kw: parseFloat(document.getElementById('edit-charger-power').value) || origConn.powerKW || null,
       points: parseInt(document.getElementById('edit-charger-points').value) || currentCharger.numberOfPoints || null,
-      cost: document.getElementById('edit-charger-cost').value.trim() || currentCharger.cost || null,
+      cost: document.getElementById('edit-charger-cost').value || currentCharger.cost || null,
       operator: document.getElementById('edit-charger-operator').value.trim() || currentCharger.operator || null,
       charger_id: chargerId,
       status: document.getElementById('edit-charger-status').value === '50' ? 'Operational' : document.getElementById('edit-charger-status').value === '20' ? 'Non-operational' : 'Unknown',
@@ -1724,14 +1782,11 @@
           '<div class="form-group"><label>Nombre</label><input type="text" id="edit-st-name" value="' + (station.name || '') + '" /></div>' +
           '<div class="form-group"><label>Dirección</label><input type="text" id="edit-st-address" value="' + (station.address || '') + '" /></div>' +
           '<div class="new-station-row">' +
-            '<div class="form-group" style="flex:1;"><label>Conector</label><input type="text" id="edit-st-connector" value="' + (station.connector || '') + '" /></div>' +
-            '<div class="form-group" style="flex:1;"><label>Nivel</label><input type="text" id="edit-st-level" value="' + (station.level || '') + '" /></div>' +
-          '</div>' +
-          '<div class="new-station-row">' +
             '<div class="form-group" style="flex:1;"><label>Potencia (kW)</label><input type="number" id="edit-st-power" value="' + (station.power_kw || '') + '" /></div>' +
             '<div class="form-group" style="flex:1;"><label>Puntos</label><input type="number" id="edit-st-points" value="' + (station.points || 1) + '" /></div>' +
-            '<div class="form-group" style="flex:1;"><label>Costo</label><input type="text" id="edit-st-cost" value="' + (station.cost || '') + '" /></div>' +
+            '<div class="form-group" style="flex:1;"><label>Costo</label><select id="edit-st-cost"><option value="">Seleccionar</option><option value="Gratis"' + (station.cost === 'Gratis' ? ' selected' : '') + '>Gratis</option><option value="De pago"' + (station.cost === 'De pago' ? ' selected' : '') + '>De pago</option><option value="Desconocido"' + (station.cost === 'Desconocido' ? ' selected' : '') + '>No sé</option></select></div>' +
           '</div>' +
+          '<div class="form-group"><label>Tipo de conector por punto</label><div id="admin-edit-connector-rows"></div></div>' +
           '<div class="form-group"><label>Operador</label><input type="text" id="edit-st-operator" value="' + (station.operator || '') + '" /></div>' +
           '<div class="form-group"><label>Estado</label><select id="edit-st-status">' +
             '<option value="50"' + ((station.status_id || 50) === 50 ? ' selected' : '') + '>Operativo</option>' +
@@ -1761,13 +1816,44 @@
         });
         setTimeout(function() { adminEditMap.invalidateSize(); }, 200);
 
+        // Generate connector rows for dashboard edit
+        var adminConnContainer = document.getElementById('admin-edit-connector-rows');
+        var editPoints = station.points || 1;
+        var parsedConns = [];
+        try { parsedConns = JSON.parse(station.connector || '[]'); } catch(e) { parsedConns = station.connector ? [station.connector] : []; }
+        var parsedLvls = [];
+        try { parsedLvls = JSON.parse(station.level || '[]'); } catch(e) { parsedLvls = station.level ? [station.level] : []; }
+        if (!Array.isArray(parsedConns)) parsedConns = [parsedConns];
+        if (!Array.isArray(parsedLvls)) parsedLvls = [parsedLvls];
+        for (var ci = 0; ci < editPoints; ci++) {
+          var row = document.createElement('div');
+          row.className = 'connector-row new-station-row';
+          row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
+            '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>';
+          adminConnContainer.appendChild(row);
+          if (parsedConns[ci]) row.querySelector('.conn-type').value = parsedConns[ci];
+          if (parsedLvls[ci]) row.querySelector('.conn-level').value = parsedLvls[ci];
+        }
+        document.getElementById('edit-st-points').addEventListener('input', function() {
+          var nc = parseInt(this.value) || 1;
+          var cur = adminConnContainer.querySelectorAll('.connector-row').length;
+          if (nc > cur) { for (var k = cur; k < nc; k++) { var r = document.createElement('div'); r.className = 'connector-row new-station-row'; r.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div><div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>'; adminConnContainer.appendChild(r); } }
+          else if (nc < cur) { while (adminConnContainer.children.length > nc) adminConnContainer.removeChild(adminConnContainer.lastChild); }
+        });
+
         document.getElementById('btn-cancel-edit').addEventListener('click', function() { loadAdminSection('admin-estaciones'); });
         document.getElementById('btn-save-station').addEventListener('click', async function() {
+          var editConns = [];
+          adminConnContainer.querySelectorAll('.connector-row').forEach(function(r) {
+            editConns.push({ type: r.querySelector('.conn-type').value, level: r.querySelector('.conn-level').value });
+          });
+          var editConnJson = editConns.length > 1 ? JSON.stringify(editConns.map(function(c) { return c.type; })) : (editConns[0] ? editConns[0].type : null);
+          var editLvlJson = editConns.length > 1 ? JSON.stringify(editConns.map(function(c) { return c.level; })) : (editConns[0] ? editConns[0].level : null);
           await SupabaseApp.updateStation(station.id, {
             name: document.getElementById('edit-st-name').value,
             address: document.getElementById('edit-st-address').value,
-            connector: document.getElementById('edit-st-connector').value || null,
-            level: document.getElementById('edit-st-level').value || null,
+            connector: editConnJson || null,
+            level: editLvlJson || null,
             power_kw: parseFloat(document.getElementById('edit-st-power').value) || null,
             points: parseInt(document.getElementById('edit-st-points').value) || null,
             cost: document.getElementById('edit-st-cost').value || null,
