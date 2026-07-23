@@ -1364,10 +1364,14 @@
 
   async function handleLogin(e) {
     e.preventDefault();
-    var email = document.getElementById('auth-email').value;
-    var password = document.getElementById('auth-password').value;
+    var emailEl = document.getElementById('auth-email');
+    var passEl = document.getElementById('auth-password');
+    if (!emailEl || !passEl) return;
+    var email = emailEl.value;
+    var password = passEl.value;
     var errorEl = document.getElementById('auth-error');
     var submitBtn = document.getElementById('auth-submit');
+    if (!errorEl || !submitBtn) return;
     errorEl.classList.add('hidden');
     submitBtn.textContent = 'Cargando...';
     submitBtn.disabled = true;
