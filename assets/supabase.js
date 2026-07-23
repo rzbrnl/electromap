@@ -241,6 +241,89 @@ var SupabaseApp = (function() {
     return client.auth.getUser();
   }
 
+  // === ADMIN ===
+  async function isAdmin(userId) {
+    if (!client) return false;
+    const { data } = await client.from('user_profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    return data && data.role === 'admin';
+  }
+
+  async function getDashboardStats() {
+    if (!client) return null;
+    var counts = {};
+    var tables = ['user_profiles', 'comments', 'photos', 'reports', 'favorites'];
+    for (var i = 0; i < tables.length; i++) {
+      var { count } = await client.from(tables[i]).select('*', { count: 'exact', head: true });
+      counts[tables[i]] = count || 0;
+    }
+    return counts;
+  }
+
+  async function getAllUsers() {
+    if (!client) return [];
+    const { data, error } = await client.from('user_profiles')
+      .select('id, email, display_name, avatar_url, role, created_at')
+      .order('created_at', { ascending: false });
+    return error ? [] : data;
+  }
+
+  async function updateUserRole(userId, role) {
+    if (!client) return false;
+    const { error } = await client.from('user_profiles')
+      .update({ role: role })
+      .eq('id', userId);
+    return !error;
+  }
+
+  async function getAllReports(status) {
+    if (!client) return [];
+    var query = client.from('reports').select('*').order('created_at', { ascending: false });
+    if (status && status !== 'all') query = query.eq('status', status);
+    const { data, error } = await query;
+    return error ? [] : data;
+  }
+
+  async function updateReportStatus(reportId, status) {
+    if (!client) return false;
+    const { error } = await client.from('reports')
+      .update({ status: status })
+      .eq('id', reportId);
+    return !error;
+  }
+
+  async function getAllCommentsAdmin(limit, offset) {
+    if (!client) return [];
+    const { data, error } = await client.from('comments')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(offset || 0, (offset || 0) + (limit || 50) - 1);
+    return error ? [] : data;
+  }
+
+  async function getAllPhotosAdmin(limit, offset) {
+    if (!client) return [];
+    const { data, error } = await client.from('photos')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(offset || 0, (offset || 0) + (limit || 50) - 1);
+    return error ? [] : data;
+  }
+
+  async function deleteAnyComment(commentId) {
+    if (!client) return false;
+    const { error } = await client.from('comments').delete().eq('id', commentId);
+    return !error;
+  }
+
+  async function deleteAnyPhoto(photoId) {
+    if (!client) return false;
+    const { error } = await client.from('photos').delete().eq('id', photoId);
+    return !error;
+  }
+
   return {
     init, getClient,
     getComments, getCommentsByUser, addComment, updateComment, deleteComment, getAverageRating,
@@ -249,6 +332,9 @@ var SupabaseApp = (function() {
     getFavorites, toggleFavorite,
     addToHistory, getHistory,
     getProfile, updateDisplayName,
+    isAdmin, getDashboardStats, getAllUsers, updateUserRole,
+    getAllReports, updateReportStatus,
+    getAllCommentsAdmin, getAllPhotosAdmin, deleteAnyComment, deleteAnyPhoto,
     signUp, signIn, signOut, getUser
   };
 })();

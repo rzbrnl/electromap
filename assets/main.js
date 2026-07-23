@@ -890,6 +890,22 @@
     });
     loadProfilePhotos(user.id);
 
+    // Check admin
+    SupabaseApp.isAdmin(user.id).then(function(admin) {
+      if (admin) {
+        var tabCuenta = document.getElementById('tab-cuenta');
+        if (tabCuenta) {
+          var adminBtn = document.createElement('button');
+          adminBtn.className = 'btn-primary';
+          adminBtn.id = 'btn-admin-dashboard';
+          adminBtn.style.cssText = 'background:var(--info);width:100%;margin-top:16px;border-radius:var(--radius-sm);';
+          adminBtn.textContent = 'Dashboard';
+          tabCuenta.insertBefore(adminBtn, document.getElementById('btn-logout'));
+          adminBtn.addEventListener('click', function() { modal.classList.add('hidden'); showAdminDashboard(); });
+        }
+      }
+    });
+
     var pendingAvatarData = null;
 
     // Avatar upload
@@ -972,6 +988,215 @@
       modal.classList.add('hidden');
       showToast('Sesión cerrada');
       setTimeout(function() { window.location.reload(); }, 1000);
+    });
+  }
+
+  // === ADMIN DASHBOARD ===
+  function showAdminDashboard() {
+    var modal = document.getElementById('auth-modal');
+    var title = document.getElementById('auth-title');
+    var subtitle = document.getElementById('auth-subtitle');
+    var form = document.getElementById('auth-form');
+
+    title.textContent = 'Admin Dashboard';
+    subtitle.textContent = '';
+
+    // Hide all auth forms
+    document.getElementById('signup-form').classList.add('hidden');
+    document.getElementById('forgot-form').classList.add('hidden');
+    document.getElementById('reset-form').classList.add('hidden');
+    document.getElementById('auth-error').classList.add('hidden');
+
+    form.innerHTML =
+      '<div class="admin-layout">' +
+        '<div class="admin-sidebar">' +
+          '<button class="admin-nav active" data-section="admin-resumen">Resumen</button>' +
+          '<button class="admin-nav" data-section="admin-usuarios">Usuarios</button>' +
+          '<button class="admin-nav" data-section="admin-reportes">Reportes</button>' +
+          '<button class="admin-nav" data-section="admin-resenas">Reseñas</button>' +
+          '<button class="admin-nav" data-section="admin-fotos">Fotos</button>' +
+        '</div>' +
+        '<div class="admin-content" id="admin-content"></div>' +
+      '</div>';
+    form.classList.remove('hidden');
+    modal.classList.remove('hidden');
+
+    // Tab navigation
+    form.querySelectorAll('.admin-nav').forEach(function(nav) {
+      nav.addEventListener('click', function() {
+        form.querySelectorAll('.admin-nav').forEach(function(n) { n.classList.remove('active'); });
+        nav.classList.add('active');
+        loadAdminSection(nav.dataset.section);
+      });
+    });
+
+    loadAdminSection('admin-resumen');
+  }
+
+  async function loadAdminSection(section) {
+    var content = document.getElementById('admin-content');
+    if (!content) return;
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Cargando...</div>';
+
+    if (section === 'admin-resumen') await renderAdminResumen(content);
+    else if (section === 'admin-usuarios') await renderAdminUsuarios(content);
+    else if (section === 'admin-reportes') await renderAdminReportes(content);
+    else if (section === 'admin-resenas') await renderAdminResenas(content);
+    else if (section === 'admin-fotos') await renderAdminFotos(content);
+  }
+
+  async function renderAdminResumen(el) {
+    var stats = await SupabaseApp.getDashboardStats();
+    if (!stats) { el.innerHTML = '<p>Error al cargar stats</p>'; return; }
+    var reports = await SupabaseApp.getAllReports('pending');
+    var users = await SupabaseApp.getAllUsers();
+    var recentUsers = users.slice(0, 5);
+
+    el.innerHTML =
+      '<div class="admin-section-title">Resumen</div>' +
+      '<div class="admin-stats-grid">' +
+        '<div class="admin-stat-card"><div class="admin-stat-number">' + (stats.user_profiles || 0) + '</div><div class="admin-stat-label">Usuarios</div></div>' +
+        '<div class="admin-stat-card"><div class="admin-stat-number" style="color:var(--warning);">' + reports.length + '</div><div class="admin-stat-label">Reportes pendientes</div></div>' +
+        '<div class="admin-stat-card"><div class="admin-stat-number">' + (stats.comments || 0) + '</div><div class="admin-stat-label">Reseñas</div></div>' +
+        '<div class="admin-stat-card"><div class="admin-stat-number">' + (stats.photos || 0) + '</div><div class="admin-stat-label">Fotos</div></div>' +
+      '</div>' +
+      '<div class="admin-section-title" style="margin-top:20px;">Últimos usuarios</div>' +
+      recentUsers.map(function(u) {
+        return '<div class="admin-row"><div class="admin-row-info"><span class="admin-row-name">' + (u.display_name || u.email) + '</span><span class="admin-row-sub">' + u.email + '</span></div><span class="admin-role-badge ' + u.role + '">' + u.role + '</span></div>';
+      }).join('');
+  }
+
+  async function renderAdminUsuarios(el) {
+    var users = await SupabaseApp.getAllUsers();
+    el.innerHTML =
+      '<div class="admin-section-title">Usuarios (' + users.length + ')</div>' +
+      '<input type="text" id="admin-user-search" placeholder="Buscar por email o nombre..." class="admin-search" />' +
+      '<div id="admin-users-list">' +
+      users.map(function(u) {
+        return '<div class="admin-row" data-search="' + (u.email + ' ' + (u.display_name || '')).toLowerCase() + '">' +
+          '<div class="admin-row-info"><span class="admin-row-name">' + (u.display_name || 'Sin nombre') + '</span><span class="admin-row-sub">' + u.email + '</span></div>' +
+          '<select class="admin-role-select" data-user-id="' + u.id + '" data-current-role="' + u.role + '">' +
+            '<option value="user"' + (u.role === 'user' ? ' selected' : '') + '>User</option>' +
+            '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>Admin</option>' +
+          '</select>' +
+        '</div>';
+      }).join('') + '</div>';
+
+    el.querySelector('#admin-user-search').addEventListener('input', function() {
+      var q = this.value.toLowerCase();
+      el.querySelectorAll('.admin-row').forEach(function(row) {
+        row.style.display = row.dataset.search.includes(q) ? '' : 'none';
+      });
+    });
+
+    el.querySelectorAll('.admin-role-select').forEach(function(sel) {
+      sel.addEventListener('change', async function() {
+        await SupabaseApp.updateUserRole(this.dataset.userId, this.value);
+        showToast('Rol actualizado');
+      });
+    });
+  }
+
+  async function renderAdminReportes(el) {
+    var reports = await SupabaseApp.getAllReports('all');
+    el.innerHTML =
+      '<div class="admin-section-title">Reportes (' + reports.length + ')</div>' +
+      '<div class="admin-filters">' +
+        '<button class="admin-filter active" data-filter="all">Todos</button>' +
+        '<button class="admin-filter" data-filter="pending">Pendientes</button>' +
+        '<button class="admin-filter" data-filter="resolved">Resueltos</button>' +
+        '<button class="admin-filter" data-filter="dismissed">Descartados</button>' +
+      '</div>' +
+      '<div id="admin-reports-list">' +
+      reports.map(function(r) {
+        return renderReportItem(r);
+      }).join('') + '</div>';
+
+    el.querySelectorAll('.admin-filter').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        el.querySelectorAll('.admin-filter').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        var filtered = await SupabaseApp.getAllReports(btn.dataset.filter);
+        document.getElementById('admin-reports-list').innerHTML = filtered.map(renderReportItem).join('');
+        attachReportActions();
+      });
+    });
+    attachReportActions();
+  }
+
+  function renderReportItem(r) {
+    var statusClass = r.status === 'resolved' ? 'resolved' : r.status === 'dismissed' ? 'dismissed' : 'pending';
+    var typeLabel = r.report_type === 'new_station' ? 'Nueva estación' : r.report_type === 'damaged' ? 'Dañado' : 'Info incorrecta';
+    return '<div class="admin-report-item">' +
+      '<div class="admin-report-header"><span class="admin-report-type">' + typeLabel + '</span><span class="admin-report-status ' + statusClass + '">' + (r.status || 'pending') + '</span></div>' +
+      '<div class="admin-report-desc">' + (r.description || 'Sin descripción') + '</div>' +
+      (r.new_station_name ? '<div class="admin-report-desc">Estación: ' + r.new_station_name + '</div>' : '') +
+      '<div class="admin-report-actions">' +
+        '<button class="admin-action-btn resolve" data-id="' + r.id + '">Resuelto</button>' +
+        '<button class="admin-action-btn dismiss" data-id="' + r.id + '">Descartar</button>' +
+      '</div></div>';
+  }
+
+  function attachReportActions() {
+    document.querySelectorAll('.admin-action-btn.resolve').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        await SupabaseApp.updateReportStatus(this.dataset.id, 'resolved');
+        showToast('Marcado como resuelto');
+        loadAdminSection('admin-reportes');
+      });
+    });
+    document.querySelectorAll('.admin-action-btn.dismiss').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        await SupabaseApp.updateReportStatus(this.dataset.id, 'dismissed');
+        showToast('Descartado');
+        loadAdminSection('admin-reportes');
+      });
+    });
+  }
+
+  async function renderAdminResenas(el) {
+    var comments = await SupabaseApp.getAllCommentsAdmin(50, 0);
+    el.innerHTML =
+      '<div class="admin-section-title">Reseñas (' + comments.length + ')</div>' +
+      comments.map(function(c) {
+        var stars = c.rating ? '★'.repeat(c.rating) + '☆'.repeat(5 - c.rating) : '';
+        var date = c.created_at ? new Date(c.created_at).toLocaleDateString('es-MX') : '';
+        return '<div class="admin-report-item">' +
+          '<div class="admin-report-header"><span class="admin-row-name">' + (c.user_name || 'Anónimo') + '</span><span class="admin-report-sub">' + c.charger_id + '</span></div>' +
+          '<div class="admin-stars">' + stars + '</div>' +
+          '<div class="admin-report-desc">' + (c.comment || '') + '</div>' +
+          '<div class="admin-report-actions"><span class="admin-report-date">' + date + '</span>' +
+          '<button class="admin-action-btn delete" data-id="' + c.id + '" data-type="comment">Eliminar</button></div></div>';
+      }).join('') || '<p style="color:var(--text-muted);padding:20px;">No hay reseñas</p>';
+
+    el.querySelectorAll('.admin-action-btn.delete').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        await SupabaseApp.deleteAnyComment(this.dataset.id);
+        showToast('Reseña eliminada');
+        loadAdminSection('admin-resenas');
+      });
+    });
+  }
+
+  async function renderAdminFotos(el) {
+    var photos = await SupabaseApp.getAllPhotosAdmin(50, 0);
+    el.innerHTML =
+      '<div class="admin-section-title">Fotos (' + photos.length + ')</div>' +
+      '<div class="admin-photo-grid">' +
+      photos.map(function(p) {
+        var date = p.created_at ? new Date(p.created_at).toLocaleDateString('es-MX') : '';
+        return '<div class="admin-photo-item">' +
+          '<img src="' + p.url + '" loading="lazy" onclick="this.closest(\'.admin-photo-item\').querySelector(\'.admin-photo-overlay\').classList.toggle(\'hidden\')">' +
+          '<div class="admin-photo-overlay hidden"><span>' + (p.user_id ? p.user_id.substring(0, 8) : '') + ' · ' + date + '</span>' +
+          '<button class="admin-action-btn delete" data-id="' + p.id + '">Eliminar</button></div></div>';
+      }).join('') + '</div>' || '<p style="color:var(--text-muted);padding:20px;">No hay fotos</p>';
+
+    el.querySelectorAll('.admin-action-btn.delete').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        await SupabaseApp.deleteAnyPhoto(this.dataset.id);
+        showToast('Foto eliminada');
+        loadAdminSection('admin-fotos');
+      });
     });
   }
 
