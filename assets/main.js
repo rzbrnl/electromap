@@ -838,7 +838,10 @@
         '<button class="profile-tab" data-tab="tab-fotos">Fotos</button>' +
       '</div>' +
       '<div class="profile-tab-content" id="tab-cuenta">' +
-        '<button class="btn-primary" id="btn-save-avatar" style="background:var(--accent);width:100%;display:none;margin-bottom:12px;">Guardar foto</button>' +
+        '<div class="profile-info-row"><span class="profile-stat-label">Nombre</span><span class="profile-stat-value" id="profile-name-display">' + (user.email || '') + '</span></div>' +
+        '<div class="profile-info-row"><span class="profile-stat-label">Correo</span><span class="profile-stat-value" style="font-size:12px;word-break:break-all;">' + (user.email || '') + '</span></div>' +
+        '<div class="profile-info-row"><span class="profile-stat-label">Miembro desde</span><span class="profile-stat-value" id="profile-member-since"></span></div>' +
+        '<button class="btn-primary" id="btn-save-avatar" style="background:var(--accent);width:100%;display:none;margin-top:16px;margin-bottom:12px;">Guardar foto</button>' +
         '<button class="btn-primary" id="btn-logout" style="background:var(--danger);width:100%;border-radius:var(--radius-sm);">Cerrar sesión</button>' +
       '</div>' +
       '<div class="profile-tab-content hidden" id="tab-stats">' +
@@ -864,9 +867,17 @@
 
     // Load profile data
     SupabaseApp.getProfile(user.id).then(function(profile) {
-      if (profile && profile.display_name) {
-        var nameEl = document.querySelector('#auth-form .profile-name');
-        if (nameEl) nameEl.textContent = profile.display_name;
+      if (profile) {
+        if (profile.display_name) {
+          var nameEl = document.getElementById('profile-name-display');
+          if (nameEl) nameEl.textContent = profile.display_name;
+          var headerName = document.querySelector('.profile-name');
+          if (headerName) headerName.textContent = profile.display_name;
+        }
+        if (profile.created_at) {
+          var dateEl = document.getElementById('profile-member-since');
+          if (dateEl) dateEl.textContent = new Date(profile.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
       }
     });
     SupabaseApp.getFavorites(user.id).then(function(favs) {

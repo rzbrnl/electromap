@@ -1879,6 +1879,18 @@ button.top-btn-accent:hover {
   min-height: 60px;
 }
 
+.profile-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-info-row:last-of-type {
+  border-bottom: none;
+}
+
 .profile-stat-row {
   display: flex;
   justify-content: space-between;

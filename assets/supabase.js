@@ -191,7 +191,7 @@ var SupabaseApp = (function() {
   async function getProfile(userId) {
     if (!client) return null;
     const { data } = await client.from('user_profiles')
-      .select('display_name, avatar_url')
+      .select('display_name, avatar_url, created_at')
       .eq('id', userId)
       .single();
     return data || null;
