@@ -1846,6 +1846,39 @@ button.top-btn-accent:hover {
   margin-bottom: 8px;
 }
 
+.profile-tabs {
+  display: flex;
+  gap: 0;
+  margin: 20px 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-tab {
+  flex: 1;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-tab:hover {
+  color: var(--text);
+}
+
+.profile-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.profile-tab-content {
+  min-height: 60px;
+}
+
 .profile-stat-row {
   display: flex;
   justify-content: space-between;

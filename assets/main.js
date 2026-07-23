@@ -619,9 +619,15 @@
     var photos = await SupabaseApp.getUserPhotos(userId);
     var container = document.getElementById('profile-photos');
     var countEl = document.getElementById('profile-photo-count');
+    var emptyEl = document.getElementById('profile-photos-empty');
     if (countEl) countEl.textContent = photos.length;
     if (!container) return;
-    if (photos.length === 0) { container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">No has subido fotos aún</div>'; return; }
+    if (photos.length === 0) {
+      container.innerHTML = '';
+      if (emptyEl) emptyEl.style.display = 'block';
+      return;
+    }
+    if (emptyEl) emptyEl.style.display = 'none';
     container.innerHTML = photos.map(function(p) {
       return '<div class="photo-thumb-wrap"><img src="' + p.url + '" class="community-photo-thumb" loading="lazy"><button class="photo-delete-btn" data-id="' + p.id + '">×</button></div>';
     }).join('');
@@ -822,22 +828,38 @@
         '<input type="file" id="avatar-file-input" accept="image/*" style="display:none;">' +
       '</div>' +
       '<div style="text-align:center;">' +
-        '<div class="profile-name" style="color:var(--text);font-size:16px;font-weight:600;margin-bottom:4px;">' + (user.email || 'Usuario') + '</div>' +
-        '<div style="color:var(--text-muted);font-size:13px;">Miembro de ElectroMap</div>' +
+        '<div class="profile-name" style="color:var(--text);font-size:16px;font-weight:600;margin-bottom:2px;">' + (user.email || 'Usuario') + '</div>' +
+        '<div style="color:var(--text-muted);font-size:12px;">Miembro de ElectroMap</div>' +
       '</div>' +
-      '<div class="profile-section">' +
-        '<div class="profile-section-title">Estadísticas</div>' +
+      '<div class="profile-tabs">' +
+        '<button class="profile-tab active" data-tab="tab-cuenta">Cuenta</button>' +
+        '<button class="profile-tab" data-tab="tab-stats">Estadísticas</button>' +
+        '<button class="profile-tab" data-tab="tab-fotos">Fotos</button>' +
+      '</div>' +
+      '<div class="profile-tab-content" id="tab-cuenta">' +
+        '<button class="btn-primary" id="btn-save-avatar" style="background:var(--accent);width:100%;display:none;margin-bottom:12px;">Guardar foto</button>' +
+        '<button class="btn-primary" id="btn-logout" style="background:var(--danger);width:100%;">Cerrar sesión</button>' +
+      '</div>' +
+      '<div class="profile-tab-content hidden" id="tab-stats">' +
         '<div class="profile-stat-row"><span class="profile-stat-label">Favoritos</span><span class="profile-stat-value" id="profile-fav-count">0</span></div>' +
         '<div class="profile-stat-row"><span class="profile-stat-label">Reseñas</span><span class="profile-stat-value" id="profile-comment-count">0</span></div>' +
         '<div class="profile-stat-row"><span class="profile-stat-label">Fotos subidas</span><span class="profile-stat-value" id="profile-photo-count">0</span></div>' +
       '</div>' +
-      '<div class="profile-section">' +
-        '<div class="profile-section-title">Mis fotos</div>' +
+      '<div class="profile-tab-content hidden" id="tab-fotos">' +
         '<div id="profile-photos" class="photos-grid"></div>' +
-      '</div>' +
-      '<button class="btn-primary" id="btn-save-avatar" style="background:var(--accent);margin-top:16px;width:100%;display:none;">Guardar foto</button>' +
-      '<button class="btn-primary" id="btn-logout" style="background:var(--danger);margin-top:8px;width:100%;">Cerrar sesión</button>';
+        '<div id="profile-photos-empty" style="color:var(--text-muted);font-size:13px;text-align:center;padding:16px 0;">No has subido fotos aún</div>' +
+      '</div>';
     modal.classList.remove('hidden');
+
+    // Tab switching
+    form.querySelectorAll('.profile-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        form.querySelectorAll('.profile-tab').forEach(function(t) { t.classList.remove('active'); });
+        form.querySelectorAll('.profile-tab-content').forEach(function(c) { c.classList.add('hidden'); });
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.remove('hidden');
+      });
+    });
 
     // Load profile data
     SupabaseApp.getProfile(user.id).then(function(profile) {
