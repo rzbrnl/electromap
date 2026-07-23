@@ -332,6 +332,11 @@
     document.getElementById('btn-filters').addEventListener('click', toggleFilters);
     document.getElementById('btn-legend').addEventListener('click', toggleLegend);
     document.getElementById('btn-user').addEventListener('click', toggleAuthModal);
+    document.getElementById('btn-admin-header').addEventListener('click', function() {
+      var modal = document.getElementById('auth-modal');
+      modal.classList.add('hidden');
+      showAdminDashboard();
+    });
     document.getElementById('close-sidebar').addEventListener('click', hideSidebar);
     document.getElementById('close-filters').addEventListener('click', hideFilters);
     document.getElementById('close-auth').addEventListener('click', hideAuthModal);
@@ -420,6 +425,7 @@
 
     // Load favorites on init
     loadUserFavorites();
+    checkAdminHeader();
 
     var moveTimeout;
     ChargerMap.onMapEvent('moveend', function() {
@@ -1112,6 +1118,18 @@
     }
   }
 
+  async function checkAdminHeader() {
+    var user = await getCurrentUser();
+    var btn = document.getElementById('btn-admin-header');
+    if (!btn) return;
+    if (user) {
+      var admin = await SupabaseApp.isAdmin(user.id);
+      btn.classList.toggle('hidden', !admin);
+    } else {
+      btn.classList.add('hidden');
+    }
+  }
+
   // === HELPER: get current user ===
   async function getCurrentUser() {
     try {
@@ -1206,18 +1224,8 @@
 
     // Check admin
     SupabaseApp.isAdmin(user.id).then(function(admin) {
-      if (admin) {
-        var tabCuenta = document.getElementById('tab-cuenta');
-        if (tabCuenta) {
-          var adminBtn = document.createElement('button');
-          adminBtn.className = 'btn-primary';
-          adminBtn.id = 'btn-admin-dashboard';
-          adminBtn.style.cssText = 'background:var(--info);width:100%;margin-top:16px;border-radius:var(--radius-sm);';
-          adminBtn.textContent = 'Dashboard';
-          tabCuenta.insertBefore(adminBtn, document.getElementById('btn-logout'));
-          adminBtn.addEventListener('click', function() { modal.classList.add('hidden'); showAdminDashboard(); });
-        }
-      }
+      var dashBtn = document.getElementById('btn-admin-header');
+      if (dashBtn) dashBtn.classList.toggle('hidden', !admin);
     });
 
     var pendingAvatarData = null;
@@ -1898,6 +1906,7 @@
           localStorage.removeItem('em-pending-name');
         }
         loadUserFavorites();
+        checkAdminHeader();
       } else {
         errorEl.textContent = 'Credenciales incorrectas. Intenta de nuevo.';
         errorEl.classList.remove('hidden');
