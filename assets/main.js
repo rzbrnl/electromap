@@ -419,9 +419,14 @@
 
   function hideAuthModal() {
     document.getElementById('auth-modal').classList.add('hidden');
-    document.getElementById('auth-error').classList.add('hidden');
-    document.getElementById('signup-error').classList.add('hidden');
-    document.getElementById('forgot-error').classList.add('hidden');
+    var err = document.getElementById('auth-error');
+    if (err) err.classList.add('hidden');
+    var signupErr = document.getElementById('signup-error');
+    if (signupErr) signupErr.classList.add('hidden');
+    var forgotErr = document.getElementById('forgot-error');
+    if (forgotErr) forgotErr.classList.add('hidden');
+    var resetErr = document.getElementById('reset-error');
+    if (resetErr) resetErr.classList.add('hidden');
     showAuthView('login');
   }
 
@@ -1000,12 +1005,6 @@
 
     title.textContent = 'Admin Dashboard';
     subtitle.textContent = '';
-
-    // Hide all auth forms
-    document.getElementById('signup-form').classList.add('hidden');
-    document.getElementById('forgot-form').classList.add('hidden');
-    document.getElementById('reset-form').classList.add('hidden');
-    document.getElementById('auth-error').classList.add('hidden');
 
     form.innerHTML =
       '<div class="admin-layout">' +
