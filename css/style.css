@@ -2108,7 +2108,10 @@ textarea:focus {
 .admin-row-sub {
   font-size: 11px;
   color: var(--text-muted);
-  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
 }
 
 .admin-role-badge {
