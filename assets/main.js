@@ -306,9 +306,9 @@
     document.getElementById('btn-report').addEventListener('click', showReportModal);
     document.getElementById('close-report').addEventListener('click', function() { document.getElementById('report-modal').classList.add('hidden'); });
     document.getElementById('report-form').addEventListener('submit', submitReport);
-    document.getElementById('report-type').addEventListener('change', function() {
-      document.getElementById('new-station-fields').style.display = this.value === 'new_station' ? 'block' : 'none';
-    });
+    document.getElementById('btn-new-station').addEventListener('click', showNewStationModal);
+    document.getElementById('close-new-station').addEventListener('click', function() { document.getElementById('new-station-modal').classList.add('hidden'); });
+    document.getElementById('new-station-form').addEventListener('submit', submitNewStation);
 
     // Star rating
     document.querySelectorAll('#star-rating .star').forEach(function(star) {
@@ -324,7 +324,7 @@
       moveTimeout = setTimeout(function() { loadChargers(); }, 500);
     });
 
-    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); hideAuthModal(); document.getElementById('report-modal').classList.add('hidden'); } });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); hideAuthModal(); document.getElementById('report-modal').classList.add('hidden'); document.getElementById('new-station-modal').classList.add('hidden'); } });
   }
 
   var isLoginMode = true;
@@ -606,14 +606,6 @@
       description: description
     };
 
-    if (type === 'new_station') {
-      data.newStationName = document.getElementById('report-station-name').value.trim();
-      data.newStationAddress = document.getElementById('report-station-address').value.trim();
-      data.newStationConnector = document.getElementById('report-station-connector').value.trim();
-      if (userLat) data.newStationLat = userLat;
-      if (userLng) data.newStationLng = userLng;
-    }
-
     var result = await SupabaseApp.addReport(data);
     if (result) {
       document.getElementById('report-modal').classList.add('hidden');
@@ -621,6 +613,42 @@
       showToast('Reporte enviado. Gracias.');
     } else {
       showToast('Error al enviar reporte');
+    }
+  }
+
+  // === NEW STATION ===
+  function showNewStationModal() {
+    var user = getCurrentUser();
+    if (!user) { showToast('Inicia sesión para reportar estaciones'); return; }
+    document.getElementById('new-station-modal').classList.remove('hidden');
+  }
+
+  async function submitNewStation(e) {
+    e.preventDefault();
+    var user = await getCurrentUser();
+    if (!user) { showToast('Inicia sesión'); return; }
+
+    var name = document.getElementById('station-name').value.trim();
+    if (!name) { showToast('El nombre es requerido'); return; }
+
+    var data = {
+      chargerId: null,
+      type: 'new_station',
+      description: document.getElementById('station-description').value.trim() || '',
+      newStationName: name,
+      newStationAddress: document.getElementById('station-address').value.trim(),
+      newStationConnector: document.getElementById('station-connector').value.trim(),
+      newStationLat: userLat || null,
+      newStationLng: userLng || null
+    };
+
+    var result = await SupabaseApp.addReport(data);
+    if (result) {
+      document.getElementById('new-station-modal').classList.add('hidden');
+      document.getElementById('new-station-form').reset();
+      showToast('Nueva estación reportada. Gracias.');
+    } else {
+      showToast('Error al enviar');
     }
   }
 
