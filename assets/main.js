@@ -977,7 +977,7 @@
       .then(function(data) {
         if (data.status === 'OK' && data.results && data.results[0]) {
           var el = document.getElementById(addressFieldId);
-          if (el && !el.value) el.value = data.results[0].formatted_address;
+          if (el) el.value = data.results[0].formatted_address;
         }
       }).catch(function() {});
   }
