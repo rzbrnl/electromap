@@ -70,6 +70,7 @@ var ChargerMap = (function() {
 
   function addChargerMarkers(chargers) {
     markers.clearLayers();
+    var added = 0;
     chargers.forEach(function(charger) {
       if (!charger.lat || !charger.lng) return;
       var colorClass = ChargerData.getMarkerColor(charger);
@@ -86,7 +87,9 @@ var ChargerMap = (function() {
         direction: 'top', offset: [0, -20], opacity: 0.95, className: 'charger-tooltip'
       });
       markers.addLayer(marker);
+      added++;
     });
+    console.log('[ElectroMap] Markers added:', added, 'of', chargers.length, 'chargers');
   }
 
   function setUserLocation(lat, lng) {

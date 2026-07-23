@@ -135,6 +135,7 @@
   function applyFilters() {
     var filters = getActiveFilters();
     filteredChargers = ChargerData.filterChargers(allChargers, filters);
+    console.log('[ElectroMap] allChargers:', allChargers.length, 'filteredChargers:', filteredChargers.length);
     ChargerMap.addChargerMarkers(filteredChargers);
     updateStats();
   }
