@@ -1445,7 +1445,7 @@
       operator: document.getElementById('edit-charger-operator').value.trim() || currentCharger.operator || null,
       charger_id: chargerId,
       status: document.getElementById('edit-charger-status').value === '50' ? 'Operational' : document.getElementById('edit-charger-status').value === '20' ? 'Non-operational' : 'Unknown',
-      statusId: parseInt(document.getElementById('edit-charger-status').value)
+      status_id: parseInt(document.getElementById('edit-charger-status').value)
     };
 
     var result;
@@ -2016,7 +2016,7 @@
             points: parseInt(document.getElementById('new-st-points').value) || 1,
             cost: document.getElementById('new-st-cost').value || null,
             operator: document.getElementById('new-st-operator').value.trim() || null,
-            statusId: parseInt(document.getElementById('new-st-status').value) || 50
+            status_id: parseInt(document.getElementById('new-st-status').value) || 50
           });
           if (result) {
             showToast('Estación creada y publicada en el mapa');

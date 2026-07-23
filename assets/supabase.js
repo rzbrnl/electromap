@@ -171,7 +171,7 @@ var SupabaseApp = (function() {
       cost: stationData.cost,
       operator: stationData.operator,
       charger_id: stationData.chargerId || null,
-      status_id: stationData.statusId || 50
+      status_id: stationData.status_id || 50
     }).select();
     return error ? null : data[0];
   }
