@@ -15,6 +15,12 @@ var SupabaseApp = (function() {
           client = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_KEY);
           initialized = true;
           console.log('Supabase initialized');
+          client.auth.onAuthStateChange(function(event, session) {
+            if (event === 'PASSWORD_RECOVERY') {
+              window._resetSession = session;
+              document.dispatchEvent(new CustomEvent('auth:password-recovery'));
+            }
+          });
         }
       }
     } catch (e) {
