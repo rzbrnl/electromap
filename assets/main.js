@@ -1519,7 +1519,10 @@
   async function renderAdminEstaciones(el) {
     var stations = await SupabaseApp.getApprovedStations();
     el.innerHTML =
-      '<div class="admin-section-title">Estaciones aprobadas (' + stations.length + ')</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+        '<div class="admin-section-title" style="margin:0;">Estaciones (' + stations.length + ')</div>' +
+        '<button class="btn-primary" id="btn-admin-add-station" style="padding:6px 14px;font-size:12px;">+ Crear estación</button>' +
+      '</div>' +
       stations.map(function(s) {
         var details = [];
         if (s.connector) details.push(s.connector);
@@ -1615,6 +1618,85 @@
         });
       });
     });
+
+    // Create new station button
+    var addBtn = document.getElementById('btn-admin-add-station');
+    if (addBtn) {
+      addBtn.addEventListener('click', function() {
+        var formHtml = '<div class="admin-section-title">Crear nueva estación</div>' +
+          '<div id="admin-create-map" style="width:100%;height:200px;border-radius:var(--radius-sm);margin-bottom:12px;cursor:crosshair;"></div>' +
+          '<p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;text-align:center;">Haz clic en el mapa para colocar el pin</p>' +
+          '<div class="form-group"><label>Nombre *</label><input type="text" id="new-st-name" placeholder="Nombre de la estación" /></div>' +
+          '<div class="form-group"><label>Dirección</label><input type="text" id="new-st-address" placeholder="Dirección" /></div>' +
+          '<div class="new-station-row">' +
+            '<div class="form-group" style="flex:1;"><label>Conector</label><input type="text" id="new-st-connector" placeholder="CCS2, CHAdeMO..." /></div>' +
+            '<div class="form-group" style="flex:1;"><label>Nivel</label><input type="text" id="new-st-level" placeholder="DC Rápida" /></div>' +
+          '</div>' +
+          '<div class="new-station-row">' +
+            '<div class="form-group" style="flex:1;"><label>Potencia (kW)</label><input type="number" id="new-st-power" /></div>' +
+            '<div class="form-group" style="flex:1;"><label>Puntos</label><input type="number" id="new-st-points" value="1" /></div>' +
+            '<div class="form-group" style="flex:1;"><label>Costo</label><input type="text" id="new-st-cost" placeholder="Gratis" /></div>' +
+          '</div>' +
+          '<div class="form-group"><label>Operador</label><input type="text" id="new-st-operator" placeholder="CFE, Tesla..." /></div>' +
+          '<div class="form-group"><label>Estado</label><select id="new-st-status">' +
+            '<option value="50">Operativo</option><option value="20">No operativo</option><option value="0">Desconocido</option>' +
+          '</select></div>' +
+          '<input type="hidden" id="new-st-lat" value="" /><input type="hidden" id="new-st-lng" value="" />' +
+          '<button class="btn-primary" id="btn-save-new-station" style="width:100%;margin-top:8px;">Crear estación</button>' +
+          '<button class="btn-primary" id="btn-cancel-create" style="width:100%;margin-top:8px;background:var(--surface);color:var(--text);border:1px solid var(--border);">Cancelar</button>';
+        el.innerHTML = formHtml;
+
+        var center = userLat || 27.49;
+        var centerLng = userLng || -109.94;
+        var adminMap = L.map('admin-create-map', { zoomControl: false }).setView([center, centerLng], 15);
+        var isDrk = currentTheme === 'dark';
+        L.tileLayer(isDrk ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '' }).addTo(adminMap);
+        var adminMarker = L.marker([center, centerLng], { draggable: true, icon: createStationIcon() }).addTo(adminMap);
+        document.getElementById('new-st-lat').value = center;
+        document.getElementById('new-st-lng').value = centerLng;
+        adminMarker.on('dragend', function() {
+          var pos = adminMarker.getLatLng();
+          document.getElementById('new-st-lat').value = pos.lat;
+          document.getElementById('new-st-lng').value = pos.lng;
+        });
+        adminMap.on('click', function(e) {
+          adminMarker.setLatLng(e.latlng);
+          document.getElementById('new-st-lat').value = e.latlng.lat;
+          document.getElementById('new-st-lng').value = e.latlng.lng;
+        });
+        setTimeout(function() { adminMap.invalidateSize(); }, 200);
+
+        document.getElementById('btn-cancel-create').addEventListener('click', function() { loadAdminSection('admin-estaciones'); });
+        document.getElementById('btn-save-new-station').addEventListener('click', async function() {
+          var name = document.getElementById('new-st-name').value.trim();
+          if (!name) { showToast('El nombre es requerido'); return; }
+          var lat = parseFloat(document.getElementById('new-st-lat').value);
+          var lng = parseFloat(document.getElementById('new-st-lng').value);
+          if (!lat || !lng) { showToast('Coloca el pin en el mapa'); return; }
+
+          var result = await SupabaseApp.approveStation({
+            name: name,
+            address: document.getElementById('new-st-address').value.trim(),
+            lat: lat, lng: lng,
+            connector: document.getElementById('new-st-connector').value.trim() || null,
+            level: document.getElementById('new-st-level').value.trim() || null,
+            power: parseFloat(document.getElementById('new-st-power').value) || null,
+            points: parseInt(document.getElementById('new-st-points').value) || 1,
+            cost: document.getElementById('new-st-cost').value.trim() || null,
+            operator: document.getElementById('new-st-operator').value.trim() || null,
+            statusId: parseInt(document.getElementById('new-st-status').value) || 50
+          });
+          if (result) {
+            showToast('Estación creada y publicada en el mapa');
+            ChargerData.clearCache && ChargerData.clearCache();
+            loadChargers();
+            loadAdminSection('admin-estaciones');
+          } else {
+            showToast('Error al crear estación');
+          }
+        });
+      });
+    }
   }
 
   // === LIGHTBOX ===
