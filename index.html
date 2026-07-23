@@ -25,7 +25,7 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
     />
-    <link rel="stylesheet" href="css/style.css?v=em61" />
+    <link rel="stylesheet" href="css/style.css?v=em62" />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e'><path d='M7 2v11h3v9l7-12h-4l4-8z'/></svg>"
@@ -211,6 +211,10 @@
       >
         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
         <circle cx="12" cy="13" r="4"></circle>
+      </symbol>
+      <symbol id="icon-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
       </symbol>
       <symbol
         id="icon-live"
@@ -419,6 +423,10 @@
           <button class="action-btn" id="btn-report">
             <svg class="icon" width="16" height="16"><use href="#icon-info"></use></svg>
             Reportar
+          </button>
+          <button class="action-btn" id="btn-edit-station" style="display:none;">
+            <svg class="icon" width="16" height="16"><use href="#icon-settings"></use></svg>
+            Editar
           </button>
         </div>
 
@@ -770,6 +778,65 @@
       </div>
     </div>
 
+    <!-- Edit Station Modal -->
+    <div id="edit-station-modal" class="modal hidden">
+      <div class="modal-content modal-content-wide">
+        <div class="modal-header">
+          <h3>Editar estación</h3>
+          <button class="close-btn" id="close-edit-station">
+            <svg class="icon" width="14" height="14"><use href="#icon-close"></use></svg>
+          </button>
+        </div>
+        <div class="new-station-grid">
+          <div class="new-station-map-col">
+            <div id="edit-station-map" style="width:100%;height:100%;min-height:300px;border-radius:var(--radius-sm);cursor:crosshair;"></div>
+            <div class="map-footer-overlay">Haz clic para mover el pin. Arrástralo para ajustar.</div>
+          </div>
+          <div class="new-station-form-col">
+            <div class="form-group">
+              <label>Nombre</label>
+              <input type="text" id="edit-charger-name" />
+            </div>
+            <div class="form-group">
+              <label>Dirección</label>
+              <input type="text" id="edit-charger-address" />
+            </div>
+            <div class="new-station-row">
+              <div class="form-group" style="flex:1;">
+                <label>Conector</label>
+                <input type="text" id="edit-charger-connector" />
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>Nivel</label>
+                <input type="text" id="edit-charger-level" />
+              </div>
+            </div>
+            <div class="new-station-row">
+              <div class="form-group" style="flex:1;">
+                <label>Potencia (kW)</label>
+                <input type="number" id="edit-charger-power" />
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>Puntos</label>
+                <input type="number" id="edit-charger-points" />
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>Costo</label>
+                <input type="text" id="edit-charger-cost" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Operador</label>
+              <input type="text" id="edit-charger-operator" />
+            </div>
+            <input type="hidden" id="edit-charger-lat" />
+            <input type="hidden" id="edit-charger-lng" />
+            <button class="btn-primary" id="btn-save-charger-edit" style="width:100%;">Guardar cambios</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Confirm Modal -->
     <div id="confirm-modal" class="modal hidden">
       <div class="modal-content" style="max-width:360px;text-align:center;">
@@ -784,9 +851,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="assets/data.js?v=em61"></script>
-    <script src="assets/supabase.js?v=em61"></script>
-    <script src="assets/map.js?v=em61"></script>
-    <script src="assets/main.js?v=em61"></script>
+    <script src="assets/data.js?v=em62"></script>
+    <script src="assets/supabase.js?v=em62"></script>
+    <script src="assets/map.js?v=em62"></script>
+    <script src="assets/main.js?v=em62"></script>
   </body>
 </html>

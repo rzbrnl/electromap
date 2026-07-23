@@ -169,7 +169,8 @@ var SupabaseApp = (function() {
       power_kw: stationData.power,
       points: stationData.points,
       cost: stationData.cost,
-      operator: stationData.operator
+      operator: stationData.operator,
+      charger_id: stationData.chargerId || null
     }).select();
     return error ? null : data[0];
   }
