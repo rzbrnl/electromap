@@ -821,7 +821,7 @@
     var initial = user.email ? user.email[0].toUpperCase() : 'U';
 
     title.textContent = 'Mi perfil';
-    document.getElementById('auth-subtitle').textContent = user.email || '';
+    document.getElementById('auth-subtitle').textContent = 'Bienvenido de nuevo a ElectroMap';
     form.innerHTML =
       '<div style="text-align:center;padding-bottom:4px;">' +
         '<div class="profile-avatar-upload" id="avatar-upload-area" style="margin-bottom:12px;">' +
@@ -842,7 +842,7 @@
         '<div class="profile-info-row"><span class="profile-stat-label">Correo</span><span class="profile-stat-value" style="font-size:12px;word-break:break-all;">' + (user.email || '') + '</span></div>' +
         '<div class="profile-info-row"><span class="profile-stat-label">Miembro desde</span><span class="profile-stat-value" id="profile-member-since"></span></div>' +
         '<button class="btn-primary" id="btn-save-avatar" style="background:var(--accent);width:100%;display:none;margin-top:16px;margin-bottom:12px;">Guardar foto</button>' +
-        '<button class="btn-primary" id="btn-logout" style="background:var(--danger);width:100%;border-radius:var(--radius-sm);">Cerrar sesión</button>' +
+        '<button class="btn-primary" id="btn-logout" style="background:var(--danger);width:100%;border-radius:var(--radius-sm);margin-top:20px;">Cerrar sesión</button>' +
       '</div>' +
       '<div class="profile-tab-content hidden" id="tab-stats">' +
         '<div class="profile-stat-row"><span class="profile-stat-label">Favoritos</span><span class="profile-stat-value" id="profile-fav-count">0</span></div>' +

@@ -1883,12 +1883,15 @@ button.top-btn-accent:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 6px 0;
 }
 
-.profile-info-row:last-of-type {
-  border-bottom: none;
+.profile-info-row .profile-stat-label {
+  font-size: 12px;
+}
+
+.profile-info-row .profile-stat-value {
+  font-size: 12px;
 }
 
 .profile-stat-row {
