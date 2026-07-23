@@ -903,15 +903,110 @@
       var pos = stationMarker.getLatLng();
       document.getElementById('station-lat').value = pos.lat;
       document.getElementById('station-lng').value = pos.lng;
+      reverseGeocode(pos.lat, pos.lng, 'station-address');
     });
 
     stationPickerMap.on('click', function(e) {
       stationMarker.setLatLng(e.latlng);
       document.getElementById('station-lat').value = e.latlng.lat;
       document.getElementById('station-lng').value = e.latlng.lng;
+      reverseGeocode(e.latlng.lat, e.latlng.lng, 'station-address');
+    });
+
+    // Add Google search bar
+    addMapSearchBar(stationPickerMap, stationMarker, 'station-address', 'station-lat', 'station-lng');
+
+    // Generate connector rows
+    generateConnectorRows(1);
+    document.getElementById('station-points').addEventListener('input', function() {
+      generateConnectorRows(parseInt(this.value) || 1);
     });
 
     setTimeout(function() { stationPickerMap.invalidateSize(); }, 200);
+  }
+
+  var connectorOptions = '<option value="SAE J1772">SAE J1772 (Nivel 2)</option>' +
+    '<option value="CCS1">CCS1 (DC Rápida)</option>' +
+    '<option value="CCS2">CCS2 (DC Rápida)</option>' +
+    '<option value="CHAdeMO">CHAdeMO (DC Rápida)</option>' +
+    '<option value="Tesla">Tesla (SC / NEMA 14-50)</option>' +
+    '<option value="GB/T">GB/T</option>' +
+    '<option value="Otro">Otro</option>';
+
+  var levelOptions = '<option value="">Nivel</option>' +
+    '<option value="Nivel 1">Nivel 1 (120V)</option>' +
+    '<option value="Nivel 2">Nivel 2 (240V)</option>' +
+    '<option value="DC Rápida">DC Rápida</option>';
+
+  function generateConnectorRows(count) {
+    var container = document.getElementById('connector-rows');
+    if (!container) return;
+    var existing = container.querySelectorAll('.connector-row').length;
+    if (count === existing) return;
+
+    if (count < existing) {
+      while (container.children.length > count) container.removeChild(container.lastChild);
+    } else {
+      for (var i = existing; i < count; i++) {
+        var row = document.createElement('div');
+        row.className = 'connector-row new-station-row';
+        row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
+          '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>';
+        container.appendChild(row);
+      }
+    }
+  }
+
+  function getConnectorData() {
+    var rows = document.querySelectorAll('#connector-rows .connector-row');
+    var connectors = [];
+    rows.forEach(function(row) {
+      connectors.push({
+        type: row.querySelector('.conn-type').value,
+        level: row.querySelector('.conn-level').value
+      });
+    });
+    return connectors;
+  }
+
+  function reverseGeocode(lat, lng, addressFieldId) {
+    if (typeof google === 'undefined' || !google.maps) return;
+    var geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
+      if (status === 'OK' && results[0]) {
+        var el = document.getElementById(addressFieldId);
+        if (el && !el.value) el.value = results[0].formatted_address;
+      }
+    });
+  }
+
+  function addMapSearchBar(map, marker, addressFieldId, latFieldId, lngFieldId) {
+    var container = document.getElementById('station-map-picker').parentElement;
+    var searchDiv = document.createElement('div');
+    searchDiv.style.cssText = 'position:absolute;top:8px;left:8px;right:8px;z-index:1000;';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Buscar dirección...';
+    input.id = 'map-search-input';
+    input.style.cssText = 'width:100%;padding:8px 12px;border:none;border-radius:var(--radius-sm);font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.3);background:var(--surface);color:var(--text);font-family:inherit;';
+    searchDiv.appendChild(input);
+    container.style.position = 'relative';
+    container.insertBefore(searchDiv, container.firstChild);
+
+    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+      var autocomplete = new google.maps.places.Autocomplete(input);
+      autocomplete.addListener('place_changed', function() {
+        var place = autocomplete.getPlace();
+        if (place && place.geometry) {
+          var loc = place.geometry.location;
+          marker.setLatLng([loc.lat(), loc.lng()]);
+          map.setView([loc.lat(), loc.lng()], 16);
+          document.getElementById(latFieldId).value = loc.lat();
+          document.getElementById(lngFieldId).value = loc.lng();
+          if (place.formatted_address) document.getElementById(addressFieldId).value = place.formatted_address;
+        }
+      });
+    }
   }
 
   function createStationIcon() {
@@ -932,17 +1027,22 @@
     var name = document.getElementById('station-name').value.trim();
     if (!name) { showToast('El nombre es requerido'); return; }
 
-    var descParts = [];
-    var connector = document.getElementById('station-connector').value;
-    var level = document.getElementById('station-level').value;
+    var connectors = getConnectorData();
+    var mainConnector = connectors.length > 0 ? connectors[0].type : null;
+    var mainLevel = connectors.length > 0 ? connectors[0].level : null;
+    var connectorJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.type; })) : mainConnector;
+    var levelJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.level; })) : mainLevel;
+
     var power = document.getElementById('station-power').value;
     var points = document.getElementById('station-points').value;
     var cost = document.getElementById('station-cost').value;
     var operator = document.getElementById('station-operator').value.trim();
+    var statusId = parseInt(document.getElementById('station-status').value) || 50;
     var extraDesc = document.getElementById('station-description').value.trim();
 
-    if (connector) descParts.push('Conector: ' + connector);
-    if (level) descParts.push('Nivel: ' + level);
+    var descParts = [];
+    if (connectorJson) descParts.push('Conector: ' + (connectors.length > 1 ? connectors.map(function(c) { return c.type; }).join(', ') : connectorJson));
+    if (levelJson) descParts.push('Nivel: ' + (connectors.length > 1 ? connectors.map(function(c) { return c.level; }).filter(Boolean).join(', ') : mainLevel));
     if (power) descParts.push('Potencia: ' + power + ' kW');
     if (points) descParts.push('Puntos: ' + points);
     if (cost) descParts.push('Costo: ' + cost);
@@ -955,14 +1055,15 @@
       description: descParts.join('\n'),
       newStationName: name,
       newStationAddress: document.getElementById('station-address').value.trim(),
-      newStationConnector: connector,
+      newStationConnector: connectorJson,
       newStationLat: parseFloat(document.getElementById('station-lat').value) || null,
       newStationLng: parseFloat(document.getElementById('station-lng').value) || null,
-      level: level,
+      level: levelJson,
       power: power ? parseFloat(power) : null,
       points: points ? parseInt(points) : null,
       cost: cost,
-      operator: operator
+      operator: operator,
+      statusId: statusId
     };
 
     var result = await SupabaseApp.addReport(data);
