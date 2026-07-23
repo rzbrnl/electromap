@@ -821,13 +821,14 @@
     var initial = user.email ? user.email[0].toUpperCase() : 'U';
 
     title.textContent = 'Mi perfil';
+    document.getElementById('auth-subtitle').textContent = user.email || '';
     form.innerHTML =
-      '<div class="profile-avatar-upload" id="avatar-upload-area">' +
-        '<div class="avatar-circle" id="profile-avatar">' + initial + '</div>' +
-        '<div class="avatar-overlay"><svg class="icon" width="12" height="12"><use href="#icon-camera"></use></svg></div>' +
-        '<input type="file" id="avatar-file-input" accept="image/*" style="display:none;">' +
-      '</div>' +
-      '<div style="text-align:center;">' +
+      '<div style="text-align:center;padding-bottom:4px;">' +
+        '<div class="profile-avatar-upload" id="avatar-upload-area" style="margin-bottom:12px;">' +
+          '<div class="avatar-circle" id="profile-avatar">' + initial + '</div>' +
+          '<div class="avatar-overlay"><svg class="icon" width="12" height="12"><use href="#icon-camera"></use></svg></div>' +
+          '<input type="file" id="avatar-file-input" accept="image/*" style="display:none;">' +
+        '</div>' +
         '<div class="profile-name" style="color:var(--text);font-size:16px;font-weight:600;margin-bottom:2px;">' + (user.email || 'Usuario') + '</div>' +
         '<div style="color:var(--text-muted);font-size:12px;">Miembro de ElectroMap</div>' +
       '</div>' +
@@ -838,7 +839,7 @@
       '</div>' +
       '<div class="profile-tab-content" id="tab-cuenta">' +
         '<button class="btn-primary" id="btn-save-avatar" style="background:var(--accent);width:100%;display:none;margin-bottom:12px;">Guardar foto</button>' +
-        '<button class="btn-primary" id="btn-logout" style="background:var(--danger);width:100%;">Cerrar sesión</button>' +
+        '<button class="btn-primary" id="btn-logout" style="background:var(--danger);width:100%;border-radius:var(--radius-sm);">Cerrar sesión</button>' +
       '</div>' +
       '<div class="profile-tab-content hidden" id="tab-stats">' +
         '<div class="profile-stat-row"><span class="profile-stat-label">Favoritos</span><span class="profile-stat-value" id="profile-fav-count">0</span></div>' +
