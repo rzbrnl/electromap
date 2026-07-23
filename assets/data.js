@@ -104,6 +104,9 @@ var ChargerData = (function() {
 
   function filterChargers(chargers, filters) {
     return chargers.filter(function(charger) {
+      // Always show community/approved stations
+      if (charger._approvedId) return true;
+
       if (filters.connectorTypes && filters.connectorTypes.length > 0) {
         if (!charger.connections.some(function(conn) { return filters.connectorTypes.some(function(type) { return conn.type.includes(type); }); })) return false;
       }
