@@ -1457,6 +1457,8 @@
         if (station) {
           await SupabaseApp.updateReportStatus(reportId, 'resolved');
           showToast('Estación aprobada y publicada en el mapa');
+          ChargerData.clearCache && ChargerData.clearCache();
+          loadChargers();
           loadAdminSection('admin-reportes');
         } else {
           showToast('Error al aprobar estación');
