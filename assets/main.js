@@ -1398,6 +1398,37 @@
     }
   }
 
+  // === ADMIN CONNECTOR ROWS ===
+  function generateAdminConnectorRows(count) {
+    var container = document.getElementById('admin-connector-rows');
+    if (!container) return;
+    var existing = container.querySelectorAll('.connector-row').length;
+    if (count === existing) return;
+    if (count < existing) {
+      while (container.children.length > count) container.removeChild(container.lastChild);
+    } else {
+      for (var i = existing; i < count; i++) {
+        var row = document.createElement('div');
+        row.className = 'connector-row new-station-row';
+        row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
+          '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>';
+        container.appendChild(row);
+      }
+    }
+  }
+
+  function getAdminConnectorData() {
+    var rows = document.querySelectorAll('#admin-connector-rows .connector-row');
+    var connectors = [];
+    rows.forEach(function(row) {
+      connectors.push({
+        type: row.querySelector('.conn-type').value,
+        level: row.querySelector('.conn-level').value
+      });
+    });
+    return connectors.length > 0 ? connectors : [{ type: null, level: null }];
+  }
+
   // === ADMIN DASHBOARD ===
   function showAdminDashboard() {
     var modal = document.getElementById('auth-modal');
@@ -1407,8 +1438,8 @@
     var content = modal.querySelector('.modal-content');
 
     content.classList.add('modal-content-wide');
-    title.textContent = 'Admin Dashboard';
-    subtitle.innerHTML = '<a href="#" id="admin-back-to-profile" style="color:var(--accent);text-decoration:none;font-size:12px;">← Volver al perfil</a>';
+    title.textContent = 'Dashboard';
+    subtitle.textContent = '';
 
     form.innerHTML =
       '<div class="admin-layout">' +
@@ -1424,16 +1455,6 @@
       '</div>';
     form.classList.remove('hidden');
     modal.classList.remove('hidden');
-
-    // Back to profile
-    var backLink = document.getElementById('admin-back-to-profile');
-    if (backLink) {
-      backLink.addEventListener('click', function(e) {
-        e.preventDefault();
-        content.classList.remove('modal-content-wide');
-        toggleAuthModal();
-      });
-    }
 
     // Tab navigation
     form.querySelectorAll('.admin-nav').forEach(function(nav) {
@@ -1767,29 +1788,31 @@
     var addBtn = document.getElementById('btn-admin-add-station');
     if (addBtn) {
       addBtn.addEventListener('click', function() {
+        var connOpts = '<option value="SAE J1772">SAE J1772 (Nivel 2)</option><option value="CCS1">CCS1 (DC Rápida)</option><option value="CCS2">CCS2 (DC Rápida)</option><option value="CHAdeMO">CHAdeMO (DC Rápida)</option><option value="Tesla">Tesla (SC / NEMA 14-50)</option><option value="GB/T">GB/T</option><option value="Otro">Otro</option>';
+        var lvlOpts = '<option value="">Nivel</option><option value="Nivel 1">Nivel 1 (120V)</option><option value="Nivel 2">Nivel 2 (240V)</option><option value="DC Rápida">DC Rápida</option>';
+
         var formHtml = '<div class="admin-section-title">Crear nueva estación</div>' +
-          '<div id="admin-create-map" style="width:100%;height:200px;border-radius:var(--radius-sm);margin-bottom:12px;cursor:crosshair;"></div>' +
-          '<p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;text-align:center;">Haz clic en el mapa para colocar el pin</p>' +
+          '<div style="position:relative;">' +
+            '<div id="admin-create-map" style="width:100%;height:200px;border-radius:var(--radius-sm);margin-bottom:4px;cursor:crosshair;"></div>' +
+            '<div id="admin-create-search" style="position:absolute;top:8px;left:8px;right:8px;z-index:1000;"></div>' +
+          '</div>' +
+          '<p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;text-align:center;">Haz clic en el mapa o busca una dirección</p>' +
           '<div class="form-group"><label>Nombre *</label><input type="text" id="new-st-name" placeholder="Nombre de la estación" /></div>' +
-          '<div class="form-group"><label>Dirección</label><input type="text" id="new-st-address" placeholder="Dirección" /></div>' +
+          '<div class="form-group"><label>Dirección</label><input type="text" id="new-st-address" placeholder="Dirección completa" /></div>' +
           '<div class="new-station-row">' +
-            '<div class="form-group" style="flex:1;"><label>Conector</label><input type="text" id="new-st-connector" placeholder="CCS2, CHAdeMO..." /></div>' +
-            '<div class="form-group" style="flex:1;"><label>Nivel</label><input type="text" id="new-st-level" placeholder="DC Rápida" /></div>' +
+            '<div class="form-group" style="flex:1;"><label>Potencia (kW)</label><input type="number" id="new-st-power" placeholder="Ej: 50" min="0" /></div>' +
+            '<div class="form-group" style="flex:1;"><label>Puntos</label><input type="number" id="new-st-points" min="1" max="20" value="1" /></div>' +
+            '<div class="form-group" style="flex:1;"><label>Costo</label><select id="new-st-cost"><option value="Gratis">Gratis</option><option value="De pago">De pago</option><option value="Desconocido">No sé</option></select></div>' +
           '</div>' +
-          '<div class="new-station-row">' +
-            '<div class="form-group" style="flex:1;"><label>Potencia (kW)</label><input type="number" id="new-st-power" /></div>' +
-            '<div class="form-group" style="flex:1;"><label>Puntos</label><input type="number" id="new-st-points" value="1" /></div>' +
-            '<div class="form-group" style="flex:1;"><label>Costo</label><input type="text" id="new-st-cost" placeholder="Gratis" /></div>' +
-          '</div>' +
+          '<div class="form-group"><label>Tipo de conector por punto</label><div id="admin-connector-rows"></div></div>' +
           '<div class="form-group"><label>Operador</label><input type="text" id="new-st-operator" placeholder="CFE, Tesla..." /></div>' +
-          '<div class="form-group"><label>Estado</label><select id="new-st-status">' +
-            '<option value="50">Operativo</option><option value="20">No operativo</option><option value="0">Desconocido</option>' +
-          '</select></div>' +
+          '<div class="form-group"><label>Estado</label><select id="new-st-status"><option value="50">Operativo</option><option value="20">No operativo</option><option value="0">Desconocido</option></select></div>' +
           '<input type="hidden" id="new-st-lat" value="" /><input type="hidden" id="new-st-lng" value="" />' +
           '<button class="btn-primary" id="btn-save-new-station" style="width:100%;margin-top:8px;">Crear estación</button>' +
           '<button class="btn-primary" id="btn-cancel-create" style="width:100%;margin-top:8px;background:var(--surface);color:var(--text);border:1px solid var(--border);">Cancelar</button>';
         el.innerHTML = formHtml;
 
+        // Init map
         var center = userLat || 27.49;
         var centerLng = userLng || -109.94;
         var adminMap = L.map('admin-create-map', { zoomControl: false }).setView([center, centerLng], 15);
@@ -1802,13 +1825,73 @@
           var pos = adminMarker.getLatLng();
           document.getElementById('new-st-lat').value = pos.lat;
           document.getElementById('new-st-lng').value = pos.lng;
+          reverseGeocode(pos.lat, pos.lng, 'new-st-address');
         });
         adminMap.on('click', function(e) {
           adminMarker.setLatLng(e.latlng);
           document.getElementById('new-st-lat').value = e.latlng.lat;
           document.getElementById('new-st-lng').value = e.latlng.lng;
+          reverseGeocode(e.latlng.lat, e.latlng.lng, 'new-st-address');
         });
+
+        // Search bar
+        var searchContainer = document.getElementById('admin-create-search');
+        var searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Buscar dirección...';
+        searchInput.style.cssText = 'width:100%;padding:8px 12px;border:none;border-radius:var(--radius-sm);font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.3);background:var(--surface);color:var(--text);font-family:inherit;';
+        searchContainer.appendChild(searchInput);
+        var searchSuggestions = document.createElement('div');
+        searchSuggestions.style.cssText = 'position:absolute;top:38px;left:0;right:0;background:var(--surface);border-radius:0 0 var(--radius-sm) var(--radius-sm);box-shadow:0 4px 12px rgba(0,0,0,0.3);display:none;z-index:1001;max-height:200px;overflow-y:auto;';
+        searchContainer.appendChild(searchSuggestions);
+        var searchTimeout;
+        searchInput.addEventListener('input', function() {
+          clearTimeout(searchTimeout);
+          var q = searchInput.value.trim();
+          if (q.length < 3) { searchSuggestions.style.display = 'none'; return; }
+          searchTimeout = setTimeout(function() {
+            fetch('/api/places?type=autocomplete&q=' + encodeURIComponent(q))
+              .then(function(r) { return r.json(); })
+              .then(function(data) {
+                if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
+                  searchSuggestions.innerHTML = data.predictions.map(function(p, i) {
+                    return '<div class="suggestion-item" data-index="' + i + '" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);color:var(--text);">' + p.description + '</div>';
+                  }).join('');
+                  searchSuggestions.style.display = 'block';
+                  searchSuggestions.querySelectorAll('.suggestion-item').forEach(function(item) {
+                    item.addEventListener('click', function() {
+                      var pred = data.predictions[parseInt(this.dataset.index)];
+                      searchInput.value = pred.description;
+                      searchSuggestions.style.display = 'none';
+                      fetch('/api/places?type=details&place_id=' + pred.place_id)
+                        .then(function(r2) { return r2.json(); })
+                        .then(function(details) {
+                          if (details.status === 'OK' && details.result && details.result.geometry) {
+                            var loc = details.result.geometry.location;
+                            adminMarker.setLatLng([loc.lat, loc.lng]);
+                            adminMap.setView([loc.lat, loc.lng], 16);
+                            document.getElementById('new-st-lat').value = loc.lat;
+                            document.getElementById('new-st-lng').value = loc.lng;
+                            document.getElementById('new-st-address').value = details.result.formatted_address || pred.description;
+                          }
+                        }).catch(function() {});
+                    });
+                  });
+                } else { searchSuggestions.style.display = 'none'; }
+              }).catch(function() { searchSuggestions.style.display = 'none'; });
+          }, 300);
+        });
+        document.addEventListener('click', function(e) {
+          if (!searchContainer.contains(e.target)) searchSuggestions.style.display = 'none';
+        });
+
         setTimeout(function() { adminMap.invalidateSize(); }, 200);
+
+        // Connector rows
+        generateAdminConnectorRows(1);
+        document.getElementById('new-st-points').addEventListener('input', function() {
+          generateAdminConnectorRows(parseInt(this.value) || 1);
+        });
 
         document.getElementById('btn-cancel-create').addEventListener('click', function() { loadAdminSection('admin-estaciones'); });
         document.getElementById('btn-save-new-station').addEventListener('click', async function() {
@@ -1818,15 +1901,21 @@
           var lng = parseFloat(document.getElementById('new-st-lng').value);
           if (!lat || !lng) { showToast('Coloca el pin en el mapa'); return; }
 
+          var connectors = getAdminConnectorData();
+          var mainConn = connectors.length > 0 ? connectors[0].type : null;
+          var mainLvl = connectors.length > 0 ? connectors[0].level : null;
+          var connJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.type; })) : mainConn;
+          var lvlJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.level; })) : mainLvl;
+
           var result = await SupabaseApp.approveStation({
             name: name,
             address: document.getElementById('new-st-address').value.trim(),
             lat: lat, lng: lng,
-            connector: document.getElementById('new-st-connector').value.trim() || null,
-            level: document.getElementById('new-st-level').value.trim() || null,
+            connector: connJson,
+            level: lvlJson,
             power: parseFloat(document.getElementById('new-st-power').value) || null,
             points: parseInt(document.getElementById('new-st-points').value) || 1,
-            cost: document.getElementById('new-st-cost').value.trim() || null,
+            cost: document.getElementById('new-st-cost').value || null,
             operator: document.getElementById('new-st-operator').value.trim() || null,
             statusId: parseInt(document.getElementById('new-st-status').value) || 50
           });
