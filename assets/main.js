@@ -1647,6 +1647,52 @@
     return connectors.length > 0 ? connectors : [{ type: null, level: null, power: null }];
   }
 
+  // === ADMIN UTILITIES ===
+  function exportToCSV(data, filename) {
+    if (!data || data.length === 0) { showToast('No hay datos para exportar'); return; }
+    var headers = Object.keys(data[0]);
+    var csv = headers.join(',') + '\n';
+    data.forEach(function(row) {
+      csv += headers.map(function(h) {
+        var val = row[h] != null ? String(row[h]).replace(/"/g, '""') : '';
+        return '"' + val + '"';
+      }).join(',') + '\n';
+    });
+    var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename + '_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function bulkUpdateReports(status) {
+    var checkboxes = document.querySelectorAll('.report-checkbox:checked');
+    if (checkboxes.length === 0) { showToast('Selecciona reportes primero'); return; }
+    var ids = Array.from(checkboxes).map(function(cb) { return cb.value; });
+    for (var i = 0; i < ids.length; i++) {
+      await SupabaseApp.updateReportStatus(ids[i], status);
+    }
+    showToast(ids.length + ' reportes actualizados');
+    loadAdminSection('admin-reportes');
+  }
+
+  window.ElectroMapAdmin = {
+    exportCSV: async function(type) {
+      if (type === 'users') {
+        var data = await SupabaseApp.getAllUsers();
+        exportToCSV(data.map(function(u) { return { email: u.email, nombre: u.display_name, rol: u.role, creado: u.created_at }; }), 'electromap_usuarios');
+      } else if (type === 'reports') {
+        var data = await SupabaseApp.getAllReports('all');
+        exportToCSV(data.map(function(r) { return { tipo: r.report_type, estacion: r.new_station_name, descripcion: r.description, status: r.status, fecha: r.created_at }; }), 'electromap_reportes');
+      } else if (type === 'comments') {
+        var data = await SupabaseApp.getAllCommentsAdmin(1000, 0);
+        exportToCSV(data.map(function(c) { return { cargador: c.charger_id, usuario: c.user_name, rating: c.rating, comentario: c.comment, fecha: c.created_at }; }), 'electromap_resenas');
+      }
+    }
+  };
+
   // === ADMIN DASHBOARD ===
   function showAdminDashboard() {
     var modal = document.getElementById('auth-modal');
@@ -1702,22 +1748,60 @@
   async function renderAdminResumen(el) {
     var stats = await SupabaseApp.getDashboardStats();
     if (!stats) { el.innerHTML = '<p>Error al cargar stats</p>'; return; }
-    var reports = await SupabaseApp.getAllReports('pending');
+    var reports = await SupabaseApp.getAllReports('all');
     var users = await SupabaseApp.getAllUsers();
     var recentUsers = users.slice(0, 5);
+    var pending = reports.filter(function(r) { return r.status === 'pending'; }).length;
+    var resolved = reports.filter(function(r) { return r.status === 'resolved'; }).length;
+    var dismissed = reports.filter(function(r) { return r.status === 'dismissed'; }).length;
 
     el.innerHTML =
       '<div class="admin-section-title">Resumen</div>' +
       '<div class="admin-stats-grid">' +
         '<div class="admin-stat-card"><div class="admin-stat-number">' + (stats.user_profiles || 0) + '</div><div class="admin-stat-label">Usuarios</div></div>' +
-        '<div class="admin-stat-card"><div class="admin-stat-number" style="color:var(--warning);">' + reports.length + '</div><div class="admin-stat-label">Reportes pendientes</div></div>' +
+        '<div class="admin-stat-card"><div class="admin-stat-number" style="color:var(--warning);">' + pending + '</div><div class="admin-stat-label">Reportes pendientes</div></div>' +
         '<div class="admin-stat-card"><div class="admin-stat-number">' + (stats.comments || 0) + '</div><div class="admin-stat-label">Reseñas</div></div>' +
         '<div class="admin-stat-card"><div class="admin-stat-number">' + (stats.photos || 0) + '</div><div class="admin-stat-label">Fotos</div></div>' +
       '</div>' +
-      '<div class="admin-section-title" style="margin-top:20px;">Últimos usuarios</div>' +
-      recentUsers.map(function(u) {
-        return '<div class="admin-row"><div class="admin-row-info"><span class="admin-row-name">' + (u.display_name || u.email) + '</span><span class="admin-row-sub">' + u.email + '</span></div><span class="admin-role-badge ' + u.role + '">' + u.role + '</span></div>';
-      }).join('');
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;">' +
+        '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;">' +
+          '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">Reportes por estado</div>' +
+          '<canvas id="chart-reports" height="150"></canvas>' +
+        '</div>' +
+        '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;">' +
+          '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">Usuarios recientes</div>' +
+          recentUsers.map(function(u) {
+            return '<div class="admin-row"><div class="admin-row-info"><span class="admin-row-name">' + (u.display_name || u.email) + '</span><span class="admin-row-sub">' + u.email + '</span></div><span class="admin-role-badge ' + u.role + '">' + u.role + '</span></div>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+      '<div style="margin-top:16px;display:flex;gap:8px;">' +
+        '<button class="admin-action-btn" onclick="ElectroMapAdmin.exportCSV(\'users\')">Exportar usuarios CSV</button>' +
+        '<button class="admin-action-btn" onclick="ElectroMapAdmin.exportCSV(\'reports\')">Exportar reportes CSV</button>' +
+        '<button class="admin-action-btn" onclick="ElectroMapAdmin.exportCSV(\'comments\')">Exportar reseñas CSV</button>' +
+      '</div>';
+
+    // Render charts
+    setTimeout(function() {
+      var ctx = document.getElementById('chart-reports');
+      if (ctx && typeof Chart !== 'undefined') {
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Pendientes', 'Resueltos', 'Descartados'],
+            datasets: [{
+              data: [pending, resolved, dismissed],
+              backgroundColor: ['#f59e0b', '#22c55e', '#64748b'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } }
+          }
+        });
+      }
+    }, 100);
   }
 
   async function renderAdminUsuarios(el) {
@@ -1761,9 +1845,14 @@
         '<button class="admin-filter" data-filter="resolved">Resueltos</button>' +
         '<button class="admin-filter" data-filter="dismissed">Descartados</button>' +
       '</div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+        '<button class="admin-action-btn" onclick="document.querySelectorAll(\'.report-checkbox\').forEach(function(c){c.checked=true})">Seleccionar todo</button>' +
+        '<button class="admin-action-btn resolve" onclick="bulkUpdateReports(\'resolved\')">Aprobar seleccionados</button>' +
+        '<button class="admin-action-btn dismiss" onclick="bulkUpdateReports(\'dismissed\')">Descartar seleccionados</button>' +
+      '</div>' +
       '<div id="admin-reports-list">' +
       reports.map(function(r) {
-        return renderReportItem(r);
+        return '<label style="display:flex;gap:8px;align-items:flex-start;"><input type="checkbox" class="report-checkbox" value="' + r.id + '" style="margin-top:4px;">' + renderReportItem(r) + '</label>';
       }).join('') + '</div>';
 
     el.querySelectorAll('.admin-filter').forEach(function(btn) {
