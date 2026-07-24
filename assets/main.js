@@ -854,20 +854,34 @@
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) { showToast('La imagen no puede superar 5MB'); return; }
 
-    showToast('Subiendo foto...');
+    showToast('Procesando foto...');
     var reader = new FileReader();
-    reader.onload = async function(ev) {
-      var dataUrl = ev.target.result;
-      var result = await SupabaseApp.addPhoto(currentCharger.id, dataUrl, '', user.id);
-      if (result) {
-        loadCommunityPhotos(currentCharger);
-        showToast('Foto agregada');
-      } else {
-        showToast('Error al subir foto');
-      }
-      e.target.value = '';
+    reader.onload = function(ev) {
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var maxSize = 800;
+        var w = img.width, h = img.height;
+        if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize; } }
+        else { if (h > maxSize) { w = w * maxSize / h; h = maxSize; } }
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        var compressed = canvas.toDataURL('image/jpeg', 0.7);
+        showToast('Subiendo foto...');
+        SupabaseApp.addPhoto(currentCharger.id, compressed, '', user.id).then(function(result) {
+          if (result) {
+            loadCommunityPhotos(currentCharger);
+            showToast('Foto agregada');
+          } else {
+            showToast('Error al subir foto');
+          }
+        });
+      };
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   }
 
   // === REPORTS ===

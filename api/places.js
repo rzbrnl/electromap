@@ -8,6 +8,19 @@ module.exports = async function(req, res) {
     return;
   }
 
+  // Simple in-memory rate limiting: max 30 requests per minute per IP
+  var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  var now = Date.now();
+  if (!global._rateLimits) global._rateLimits = {};
+  if (!global._rateLimits[ip]) global._rateLimits[ip] = [];
+  global._rateLimits[ip] = global._rateLimits[ip].filter(function(t) { return now - t < 60000; });
+  if (global._rateLimits[ip].length >= 30) {
+    res.setHeader('Retry-After', '60');
+    res.status(429).json({ error: 'Demasiadas peticiones. Intenta de nuevo en un minuto.' });
+    return;
+  }
+  global._rateLimits[ip].push(now);
+
   var googleKey = process.env.GOOGLE_MAPS_KEY || '';
   if (!googleKey) {
     res.status(500).json({ error: 'Google Maps key not configured' });
