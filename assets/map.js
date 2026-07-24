@@ -83,7 +83,7 @@ var ChargerMap = (function() {
       var marker = L.marker([charger.lat, charger.lng], { icon: icon });
       marker.on('click', function() { if (onChargerSelect) onChargerSelect(charger); });
       var power = charger.connections.filter(function(c) { return c.powerKW; }).map(function(c) { return c.powerKW + ' kW'; }).join(', ') || 'N/A';
-      marker.bindTooltip('<b>' + charger.name + '</b><br>' + charger.operator + ' · ' + power, {
+      marker.bindTooltip('<b>' + charger.name + '</b><br>' + charger.operator, {
         direction: 'top', offset: [0, -20], opacity: 0.95, className: 'charger-tooltip'
       });
       markers.addLayer(marker);
