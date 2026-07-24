@@ -36,6 +36,8 @@ module.exports = async function(req, res) {
       url = 'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=' + encodeURIComponent(q) + '&components=country:mx&key=' + googleKey + '&language=es';
     } else if (type === 'details') {
       url = 'https://maps.googleapis.com/maps/api/place/details/json?place_id=' + (req.query.place_id || '') + '&key=' + googleKey + '&fields=geometry,formatted_address&language=es';
+    } else if (type === 'geocode') {
+      url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + encodeURIComponent(req.query.address || '') + '&components=country:mx&key=' + googleKey + '&language=es';
     } else if (type === 'reverse') {
       url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=' + (req.query.lat || '') + ',' + (req.query.lng || '') + '&key=' + googleKey + '&language=es';
     } else {

@@ -1440,7 +1440,10 @@
       originInput.dataset.lat = userLat;
       originInput.dataset.lng = userLng;
     }
-    // Add autocomplete to destination
+    if (!originInput.dataset.autocomplete) {
+      originInput.dataset.autocomplete = '1';
+      addAutocomplete(originInput);
+    }
     var destInput = document.getElementById('route-destination');
     if (!destInput.dataset.autocomplete) {
       destInput.dataset.autocomplete = '1';
@@ -1503,7 +1506,7 @@
     }
 
     // Get destination coordinates
-    var destData = await fetch('/api/places?type=autocomplete&q=' + encodeURIComponent(dest)).then(function(r) { return r.json(); });
+    var destData = await fetch('/api/places?type=geocode&address=' + encodeURIComponent(dest)).then(function(r) { return r.json(); });
     if (destData.status !== 'OK' || !destData.results || !destData.results[0]) { showToast('No se encontró el destino'); return; }
     var destLat = destData.results[0].geometry.location.lat;
     var destLng = destData.results[0].geometry.location.lng;
