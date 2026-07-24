@@ -1357,7 +1357,6 @@
     // Parse connector data from connections array
     var conns = charger.connections || [];
     var points = charger.numberOfPoints || conns.length || 1;
-    document.getElementById('edit-charger-power').value = conns[0] ? conns[0].powerKW || '' : '';
     document.getElementById('edit-charger-points').value = points;
     document.getElementById('edit-charger-cost').value = charger.cost && charger.cost !== 'Desconocido' ? charger.cost : '';
     document.getElementById('edit-charger-operator').value = charger.operator && charger.operator !== 'CFE' && charger.operator !== 'Comunidad' ? charger.operator : '';
@@ -1375,9 +1374,9 @@
       var row = document.createElement('div');
       row.className = 'connector-row new-station-row';
       row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
-        '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>';
+        '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>' +
+        '<div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" value="' + (c.powerKW || '') + '" /></div>';
       connContainer.appendChild(row);
-      // Set values after adding to DOM
       var typeSelect = row.querySelector('.conn-type');
       var levelSelect = row.querySelector('.conn-level');
       if (c.type && c.type !== 'N/A') typeSelect.value = c.type;
@@ -1394,7 +1393,8 @@
           var nr = document.createElement('div');
           nr.className = 'connector-row new-station-row';
           nr.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
-            '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>';
+            '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>' +
+            '<div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" /></div>';
           connContainer.appendChild(nr);
         }
       } else if (newCount < currentCount) {
