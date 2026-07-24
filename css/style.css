@@ -2375,7 +2375,8 @@ textarea:focus {
 /* Mobile responsive */
 @media (max-width: 768px) {
   .top-btn-label { display: none; }
-  .top-btn-accent { padding: 6px 10px; }
+  .top-btn-accent { padding: 8px 12px; }
+  .top-btn-accent svg { width: 20px !important; height: 20px !important; }
   .top-actions { gap: 2px; }
   .top-actions .top-btn { width: 32px; height: 32px; }
   .top-actions .top-btn svg { width: 16px; height: 16px; }
