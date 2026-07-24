@@ -246,6 +246,50 @@ var SupabaseApp = (function() {
     return error ? [] : data;
   }
 
+  // === VERIFICATIONS ===
+  async function getVerifications(chargerId) {
+    if (!client) return { total: 0, working: 0 };
+    const { data, error } = await client.from('station_verifications')
+      .select('working')
+      .eq('charger_id', chargerId);
+    if (error || !data) return { total: 0, working: 0 };
+    return {
+      total: data.length,
+      working: data.filter(function(v) { return v.working; }).length
+    };
+  }
+
+  async function getUserVerification(chargerId, userId) {
+    if (!client) return null;
+    const { data } = await client.from('station_verifications')
+      .select('working')
+      .eq('charger_id', chargerId)
+      .eq('user_id', userId)
+      .single();
+    return data || null;
+  }
+
+  async function toggleVerification(chargerId, userId, working) {
+    if (!client) return false;
+    const { data: existing } = await client.from('station_verifications')
+      .select('id, working')
+      .eq('charger_id', chargerId)
+      .eq('user_id', userId)
+      .single();
+
+    if (existing) {
+      if (existing.working === working) {
+        await client.from('station_verifications').delete().eq('id', existing.id);
+        return null;
+      }
+      await client.from('station_verifications').update({ working: working }).eq('id', existing.id);
+      return working;
+    } else {
+      await client.from('station_verifications').insert({ charger_id: chargerId, user_id: userId, working: working });
+      return working;
+    }
+  }
+
   // === PROFILE ===
   async function getProfile(userId) {
     if (!client) return null;
@@ -392,6 +436,7 @@ var SupabaseApp = (function() {
     getApprovedStations, approveStation, updateStation, deleteStation,
     getFavorites, toggleFavorite,
     addToHistory, getHistory,
+    getVerifications, getUserVerification, toggleVerification,
     getProfile, updateDisplayName,
     isAdmin, getDashboardStats, getAllUsers, updateUserRole,
     getAllReports, updateReportStatus,

@@ -254,6 +254,7 @@
     updateFavoriteButton(charger);
     loadComments(charger);
     loadCommunityPhotos(charger);
+    loadVerification(charger);
 
     // Admin: show edit button
     var editBtn = document.getElementById('btn-edit-station');
@@ -1561,6 +1562,49 @@
     } else {
       showToast('Error al guardar');
     }
+  }
+
+  // === VERIFICATION ===
+  async function loadVerification(charger) {
+    var el = document.getElementById('verification-section');
+    if (!el) return;
+    var user = await getCurrentUser();
+    var verifs = await SupabaseApp.getVerifications(charger.id);
+    var userVerif = user ? await SupabaseApp.getUserVerification(charger.id, user.id) : null;
+
+    var pct = verifs.total > 0 ? Math.round((verifs.working / verifs.total) * 100) : 0;
+    var color = pct >= 80 ? 'var(--accent)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)';
+    var label = pct >= 80 ? 'Funcionando' : pct >= 50 ? 'Incierto' : 'Problemas reportados';
+
+    var userBtnHtml = '';
+    if (user) {
+      var yesActive = userVerif && userVerif.working === true ? ' active' : '';
+      var noActive = userVerif && userVerif.working === false ? ' active' : '';
+      userBtnHtml = '<div style="margin-top:8px;">' +
+        '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">¿Funciona esta estación?</div>' +
+        '<div style="display:flex;gap:8px;justify-content:center;">' +
+          '<button class="verify-btn' + yesActive + '" data-working="true" style="flex:1;padding:6px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;cursor:pointer;">Sí funciona</button>' +
+          '<button class="verify-btn' + noActive + '" data-working="false" style="flex:1;padding:6px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;cursor:pointer;">No funciona</button>' +
+        '</div></div>';
+    } else {
+      userBtnHtml = '<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Inicia sesión para verificar</div>';
+    }
+
+    el.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">' +
+        '<div style="width:8px;height:8px;border-radius:50%;background:' + color + ';"></div>' +
+        '<span style="font-size:13px;color:var(--text);">' + label + '</span>' +
+        '<span style="font-size:12px;color:var(--text-muted);">(' + verifs.working + '/' + verifs.total + ')</span>' +
+      '</div>' +
+      userBtnHtml;
+
+    el.querySelectorAll('.verify-btn').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        var working = this.dataset.working === 'true';
+        await SupabaseApp.toggleVerification(charger.id, user.id, working);
+        loadVerification(charger);
+      });
+    });
   }
 
   // === ADMIN CONNECTOR ROWS ===
