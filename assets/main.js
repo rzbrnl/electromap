@@ -1002,16 +1002,16 @@
   }
 
   var connectorOptions = '<option value="">Seleccionar</option>' +
-    '<option value="SAE J1772">🔌 SAE J1772 (AC)</option>' +
-    '<option value="CCS1">⚡ CCS1 (DC)</option>' +
-    '<option value="CCS2">⚡ CCS2 (DC)</option>' +
-    '<option value="CHAdeMO">⚡ CHAdeMO (DC)</option>' +
-    '<option value="NACS AC">🔋 NACS (AC)</option>' +
-    '<option value="NACS DC">⚡ NACS (DC Supercharger)</option>' +
-    '<option value="GB/T DC">⚡ GB/T DC</option>' +
-    '<option value="GB/T AC">🔌 GB/T AC</option>' +
-    '<option value="Tipo 2">🔌 Tipo 2 (Mennekes)</option>' +
-    '<option value="NEMA 14-50">🔌 NEMA 14-50</option>' +
+    '<option value="SAE J1772">SAE J1772 (AC)</option>' +
+    '<option value="CCS1">CCS1 (DC)</option>' +
+    '<option value="CCS2">CCS2 (DC)</option>' +
+    '<option value="CHAdeMO">CHAdeMO (DC)</option>' +
+    '<option value="NACS AC">NACS (AC)</option>' +
+    '<option value="NACS DC">NACS (DC Supercharger)</option>' +
+    '<option value="GB/T DC">GB/T DC</option>' +
+    '<option value="GB/T AC">GB/T AC</option>' +
+    '<option value="Tipo 2">Tipo 2 (Mennekes)</option>' +
+    '<option value="NEMA 14-50">NEMA 14-50</option>' +
     '<option value="Otro">Otro</option>';
 
   function connectorLevel(connector) {
