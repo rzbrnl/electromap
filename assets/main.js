@@ -1457,15 +1457,16 @@
       points: parseInt(document.getElementById('edit-charger-points').value) || currentCharger.numberOfPoints || null,
       cost: document.getElementById('edit-charger-cost').value || currentCharger.cost || null,
       operator: document.getElementById('edit-charger-operator').value.trim() || currentCharger.operator || null,
-      charger_id: chargerId,
       status: document.getElementById('edit-charger-status').value === '50' ? 'Operational' : document.getElementById('edit-charger-status').value === '20' ? 'Non-operational' : 'Unknown',
       status_id: parseInt(document.getElementById('edit-charger-status').value)
     };
 
     var result;
     if (existingApprovedId) {
+      delete data.charger_id;
       result = await SupabaseApp.updateStation(existingApprovedId, data);
     } else {
+      data.charger_id = chargerId.indexOf('approved-') === 0 ? null : chargerId;
       result = await SupabaseApp.approveStation(data);
     }
 
