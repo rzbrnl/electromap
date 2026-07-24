@@ -1434,9 +1434,54 @@
 
   function openRoutePlanner() {
     document.getElementById('route-modal').classList.remove('hidden');
+    var originInput = document.getElementById('route-origin');
     if (userLat && userLng) {
-      document.getElementById('route-origin').value = 'Mi ubicación actual';
+      originInput.value = userLat.toFixed(5) + ', ' + userLng.toFixed(5);
+      originInput.dataset.lat = userLat;
+      originInput.dataset.lng = userLng;
     }
+    // Add autocomplete to destination
+    var destInput = document.getElementById('route-destination');
+    if (!destInput.dataset.autocomplete) {
+      destInput.dataset.autocomplete = 'true';
+      addAutocomplete(destInput);
+    }
+  }
+
+  function addAutocomplete(input) {
+    var container = input.parentElement;
+    container.style.position = 'relative';
+    var suggestions = document.createElement('div');
+    suggestions.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:0 0 var(--radius-sm) var(--radius-sm);display:none;z-index:100;max-height:180px;overflow-y:auto;box-shadow:var(--shadow);';
+    container.appendChild(suggestions);
+    var timer;
+    input.addEventListener('input', function() {
+      clearTimeout(timer);
+      var q = this.value.trim();
+      if (q.length < 3) { suggestions.style.display = 'none'; return; }
+      timer = setTimeout(function() {
+        fetch('/api/places?type=autocomplete&q=' + encodeURIComponent(q))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
+              suggestions.innerHTML = data.predictions.map(function(p, i) {
+                return '<div class="route-suggestion" style="padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);color:var(--text);">' + p.description + '</div>';
+              }).join('');
+              suggestions.style.display = 'block';
+              suggestions.querySelectorAll('.route-suggestion').forEach(function(item) {
+                item.addEventListener('click', function() {
+                  var pred = data.predictions[parseInt(this.dataset.idx)];
+                  input.value = pred.description;
+                  suggestions.style.display = 'none';
+                });
+              });
+            } else {
+              suggestions.style.display = 'none';
+            }
+          }).catch(function() { suggestions.style.display = 'none'; });
+      }, 300);
+    });
+    input.addEventListener('blur', function() { setTimeout(function() { suggestions.style.display = 'none'; }, 200); });
   }
 
   async function planRoute() {
@@ -1449,15 +1494,12 @@
     if (!dest) { showToast('Escribe un destino'); return; }
 
     // Get origin coordinates
-    var originLat, originLng;
-    if (origin === 'Mi ubicación actual' || !origin) {
+    var originInput = document.getElementById('route-origin');
+    var originLat = parseFloat(originInput.dataset.lat);
+    var originLng = parseFloat(originInput.dataset.lng);
+    if (isNaN(originLat) || isNaN(originLng)) {
       if (!userLat || !userLng) { showToast('No se pudo obtener tu ubicación'); return; }
       originLat = userLat; originLng = userLng;
-    } else {
-      var originData = await fetch('/api/places?type=autocomplete&q=' + encodeURIComponent(origin)).then(function(r) { return r.json(); });
-      if (originData.status !== 'OK' || !originData.results || !originData.results[0]) { showToast('No se encontró el origen'); return; }
-      originLat = originData.results[0].geometry.location.lat;
-      originLng = originData.results[0].geometry.location.lng;
     }
 
     // Get destination coordinates
