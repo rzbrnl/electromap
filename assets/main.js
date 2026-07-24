@@ -1436,14 +1436,14 @@
     document.getElementById('route-modal').classList.remove('hidden');
     var originInput = document.getElementById('route-origin');
     if (userLat && userLng) {
-      originInput.value = userLat.toFixed(5) + ', ' + userLng.toFixed(5);
+      originInput.value = 'Mi ubicación';
       originInput.dataset.lat = userLat;
       originInput.dataset.lng = userLng;
     }
     // Add autocomplete to destination
     var destInput = document.getElementById('route-destination');
     if (!destInput.dataset.autocomplete) {
-      destInput.dataset.autocomplete = 'true';
+      destInput.dataset.autocomplete = '1';
       addAutocomplete(destInput);
     }
   }
@@ -1464,14 +1464,14 @@
           .then(function(r) { return r.json(); })
           .then(function(data) {
             if (data.status === 'OK' && data.predictions && data.predictions.length > 0) {
-              suggestions.innerHTML = data.predictions.map(function(p, i) {
-                return '<div class="route-suggestion" style="padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);color:var(--text);">' + p.description + '</div>';
+              suggestions.innerHTML = data.predictions.map(function(p) {
+                return '<div class="route-suggestion" data-desc="' + p.description.replace(/"/g, '&quot;') + '" style="padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);color:var(--text);">' + p.description + '</div>';
               }).join('');
               suggestions.style.display = 'block';
               suggestions.querySelectorAll('.route-suggestion').forEach(function(item) {
-                item.addEventListener('click', function() {
-                  var pred = data.predictions[parseInt(this.dataset.idx)];
-                  input.value = pred.description;
+                item.addEventListener('mousedown', function(e) {
+                  e.preventDefault();
+                  input.value = this.dataset.desc;
                   suggestions.style.display = 'none';
                 });
               });
