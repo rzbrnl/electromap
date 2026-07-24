@@ -1015,8 +1015,8 @@
       }).catch(function() {});
   }
 
-  function addMapSearchBar(map, marker, addressFieldId, latFieldId, lngFieldId) {
-    var mapContainer = document.getElementById('station-map-picker').parentElement;
+  function addMapSearchBar(map, marker, addressFieldId, latFieldId, lngFieldId, mapContainerId) {
+    var mapContainer = document.getElementById(mapContainerId || 'station-map-picker').parentElement;
     mapContainer.style.position = 'relative';
     var searchDiv = document.createElement('div');
     searchDiv.style.cssText = 'position:absolute;top:8px;left:8px;right:8px;z-index:1000;';
@@ -1421,6 +1421,7 @@
       reverseGeocode(e.latlng.lat, e.latlng.lng, 'edit-charger-address');
     });
     setTimeout(function() { editStationMap.invalidateSize(); }, 200);
+    addMapSearchBar(editStationMap, editStationMarker, 'edit-charger-address', 'edit-charger-lat', 'edit-charger-lng', 'edit-station-map');
   }
 
   async function saveChargerEdit() {
