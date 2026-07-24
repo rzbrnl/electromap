@@ -104,13 +104,22 @@ var ChargerData = (function() {
 
   function normalizeConnector(type) {
     var t = (type || '').toLowerCase();
-    if (t.indexOf('tesla') !== -1) return 'Tesla';
-    if (t.indexOf('ccs') !== -1) return 'CCS';
+    if (t.indexOf('nacs') !== -1) {
+      if (t.indexOf('dc') !== -1 || t.indexOf('supercharger') !== -1) return 'NACS DC';
+      return 'NACS AC';
+    }
+    if (t.indexOf('ccs') !== -1) {
+      if (t.indexOf('1') !== -1) return 'CCS1';
+      return 'CCS2';
+    }
     if (t.indexOf('chademo') !== -1) return 'CHAdeMO';
-    if (t.indexOf('gb/t') !== -1 || t.indexOf('gb') !== -1) return 'GB/T';
-    if (t.indexOf('j1772') !== -1 || t.indexOf('sae j1772') !== -1 || t.indexOf('type 1') !== -1 || t.indexOf('type1') !== -1 || t.indexOf('nema') !== -1) return 'Type1';
-    if (t.indexOf('type 2') !== -1 || t.indexOf('type2') !== -1 || t.indexOf('mennekes') !== -1) return 'Type2';
-    if (t.indexOf('dc') !== -1 && t.indexOf('combo') !== -1) return 'CCS';
+    if (t.indexOf('gb/t dc') !== -1 || (t.indexOf('gb') !== -1 && t.indexOf('dc') !== -1)) return 'GB/T DC';
+    if (t.indexOf('gb/t ac') !== -1 || (t.indexOf('gb') !== -1 && t.indexOf('ac') !== -1)) return 'GB/T AC';
+    if (t.indexOf('gb/t') !== -1 || t.indexOf('gb') !== -1) return 'GB/T DC';
+    if (t.indexOf('tipo 2') !== -1 || t.indexOf('mennekes') !== -1 || t.indexOf('type 2') !== -1 || t.indexOf('type2') !== -1) return 'Tipo 2';
+    if (t.indexOf('j1772') !== -1 || t.indexOf('sae j1772') !== -1 || t.indexOf('type 1') !== -1 || t.indexOf('type1') !== -1) return 'SAE J1772';
+    if (t.indexOf('nema') !== -1 || t.indexOf('14-50') !== -1) return 'NEMA 14-50';
+    if (t.indexOf('dc') !== -1 && t.indexOf('combo') !== -1) return 'CCS2';
     return type || '';
   }
 

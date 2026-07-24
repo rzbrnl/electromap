@@ -216,10 +216,11 @@
     var cl = document.getElementById('charger-connections-list');
     cl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
       charger.connections.map(function(conn) {
+        var lvl = conn.level && conn.level !== 'N/A' ? conn.level : connectorLevel(conn.type);
         return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;">' +
           '<div style="font-weight:600;font-size:14px;color:var(--text);margin-bottom:4px;">' + (conn.type || 'N/A') + '</div>' +
           '<div style="font-size:13px;color:var(--accent);font-weight:600;">' + (conn.powerKW ? conn.powerKW + ' kW' : 'N/A') + '</div>' +
-          '<div style="font-size:12px;color:var(--text-muted);">' + (conn.level || 'N/A') + '</div>' +
+          '<div style="font-size:12px;color:var(--text-muted);">' + lvl + '</div>' +
         '</div>';
       }).join('') + '</div>';
 
@@ -1000,18 +1001,45 @@
     setTimeout(function() { stationPickerMap.invalidateSize(); }, 200);
   }
 
-  var connectorOptions = '<option value="SAE J1772">SAE J1772 (Nivel 2)</option>' +
-    '<option value="CCS1">CCS1 (DC Rápida)</option>' +
-    '<option value="CCS2">CCS2 (DC Rápida)</option>' +
-    '<option value="CHAdeMO">CHAdeMO (DC Rápida)</option>' +
-    '<option value="Tesla">Tesla (SC / NEMA 14-50)</option>' +
-    '<option value="GB/T">GB/T</option>' +
+  var connectorOptions = '<option value="">Seleccionar</option>' +
+    '<option value="SAE J1772">🔌 SAE J1772 (AC)</option>' +
+    '<option value="CCS1">⚡ CCS1 (DC)</option>' +
+    '<option value="CCS2">⚡ CCS2 (DC)</option>' +
+    '<option value="CHAdeMO">⚡ CHAdeMO (DC)</option>' +
+    '<option value="NACS AC">🔋 NACS (AC)</option>' +
+    '<option value="NACS DC">⚡ NACS (DC Supercharger)</option>' +
+    '<option value="GB/T DC">⚡ GB/T DC</option>' +
+    '<option value="GB/T AC">🔌 GB/T AC</option>' +
+    '<option value="Tipo 2">🔌 Tipo 2 (Mennekes)</option>' +
+    '<option value="NEMA 14-50">🔌 NEMA 14-50</option>' +
     '<option value="Otro">Otro</option>';
 
-  var levelOptions = '<option value="">Nivel</option>' +
-    '<option value="Nivel 1">Nivel 1 (120V)</option>' +
-    '<option value="Nivel 2">Nivel 2 (240V)</option>' +
-    '<option value="DC Rápida">DC Rápida</option>';
+  function connectorLevel(connector) {
+    if (!connector) return '';
+    var dc = ['CCS1', 'CCS2', 'CHAdeMO', 'NACS DC', 'GB/T DC'];
+    for (var i = 0; i < dc.length; i++) { if (connector.indexOf(dc[i]) !== -1) return 'DC Rápida'; }
+    return 'Nivel 2';
+  }
+
+  var powerSuggestions = {
+    'SAE J1772': [6.6, 7.2, 11, 19.2],
+    'CCS1': [50, 60, 120, 150, 180, 250, 350],
+    'CCS2': [50, 60, 120, 150, 180, 250, 350],
+    'CHAdeMO': [50, 60, 120, 150, 180, 250],
+    'NACS AC': [7.6, 11.5, 16, 19.2],
+    'NACS DC': [72, 150, 250],
+    'GB/T DC': [60, 90, 120, 180],
+    'GB/T AC': [6.6, 7, 11, 22],
+    'Tipo 2': [3.7, 7.4, 11, 22],
+    'NEMA 14-50': [7.6, 11.5, 19.2]
+  };
+
+  function getPowerOptions(connector) {
+    var suggestions = powerSuggestions[connector] || [11, 22, 50, 100];
+    return '<option value="">kW</option>' + suggestions.map(function(p) {
+      return '<option value="' + p + '">' + p + ' kW</option>';
+    }).join('') + '<option value="other">Otro...</option>';
+  }
 
   function generateConnectorRows(count) {
     var container = document.getElementById('connector-rows');
@@ -1026,9 +1054,12 @@
         var row = document.createElement('div');
         row.className = 'connector-row new-station-row';
         row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
-          '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>' +
-          '<div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" /></div>';
+          '<div class="form-group" style="flex:1;"><select class="conn-power"></select></div>';
         container.appendChild(row);
+        row.querySelector('.conn-type').addEventListener('change', function() {
+          var powerSel = this.closest('.connector-row').querySelector('.conn-power');
+          powerSel.innerHTML = getPowerOptions(this.value);
+        });
       }
     }
   }
@@ -1037,10 +1068,13 @@
     var rows = document.querySelectorAll('#connector-rows .connector-row');
     var connectors = [];
     rows.forEach(function(row) {
+      var type = row.querySelector('.conn-type').value;
+      var powerSel = row.querySelector('.conn-power');
+      var power = powerSel.value === 'other' ? parseFloat(prompt('Ingresa la potencia en kW:')) || null : parseFloat(powerSel.value) || null;
       connectors.push({
-        type: row.querySelector('.conn-type').value,
-        level: row.querySelector('.conn-level').value,
-        power: parseFloat(row.querySelector('.conn-power').value) || null
+        type: type,
+        level: connectorLevel(type),
+        power: power
       });
     });
     return connectors;
@@ -1418,13 +1452,15 @@
       var row = document.createElement('div');
       row.className = 'connector-row new-station-row';
       row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
-        '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>' +
-        '<div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" value="' + (c.powerKW || '') + '" /></div>';
+        '<div class="form-group" style="flex:1;"><select class="conn-power">' + getPowerOptions(c.type || '') + '</select></div>';
       connContainer.appendChild(row);
       var typeSelect = row.querySelector('.conn-type');
-      var levelSelect = row.querySelector('.conn-level');
+      var powerSelect = row.querySelector('.conn-power');
       if (c.type && c.type !== 'N/A') typeSelect.value = c.type;
-      if (c.level && c.level !== 'N/A') levelSelect.value = c.level;
+      if (c.powerKW) powerSelect.value = String(c.powerKW);
+      typeSelect.addEventListener('change', function() {
+        powerSelect.innerHTML = getPowerOptions(this.value);
+      });
     }
 
     // Points change handler
@@ -1437,8 +1473,10 @@
           var nr = document.createElement('div');
           nr.className = 'connector-row new-station-row';
           nr.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
-            '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>' +
-            '<div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" /></div>';
+            '<div class="form-group" style="flex:1;"><select class="conn-power"></select></div>';
+          nr.querySelector('.conn-type').addEventListener('change', function() {
+            nr.querySelector('.conn-power').innerHTML = getPowerOptions(this.value);
+          });
           connContainer.appendChild(nr);
         }
       } else if (newCount < currentCount) {
@@ -1538,9 +1576,12 @@
         var row = document.createElement('div');
         row.className = 'connector-row new-station-row';
         row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
-          '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>' +
-          '<div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" /></div>';
+          '<div class="form-group" style="flex:1;"><select class="conn-power"></select></div>';
         container.appendChild(row);
+        row.querySelector('.conn-type').addEventListener('change', function() {
+          var powerSel = this.closest('.connector-row').querySelector('.conn-power');
+          powerSel.innerHTML = getPowerOptions(this.value);
+        });
       }
     }
   }
@@ -1549,10 +1590,13 @@
     var rows = document.querySelectorAll('#admin-connector-rows .connector-row');
     var connectors = [];
     rows.forEach(function(row) {
+      var type = row.querySelector('.conn-type').value;
+      var powerSel = row.querySelector('.conn-power');
+      var power = powerSel.value === 'other' ? parseFloat(prompt('Ingresa la potencia en kW:')) || null : parseFloat(powerSel.value) || null;
       connectors.push({
-        type: row.querySelector('.conn-type').value,
-        level: row.querySelector('.conn-level').value,
-        power: parseFloat(row.querySelector('.conn-power').value) || null
+        type: type,
+        level: connectorLevel(type),
+        power: power
       });
     });
     return connectors.length > 0 ? connectors : [{ type: null, level: null, power: null }];
@@ -1890,28 +1934,29 @@
         var adminConnContainer = document.getElementById('admin-edit-connector-rows');
         var editPoints = station.points || 1;
         var parsedConns = [];
-        var parsedLvls = [];
         var parsedPw = [];
         try { parsedConns = JSON.parse(station.connector || '[]'); } catch(e) { parsedConns = station.connector ? [station.connector] : []; }
-        try { parsedLvls = JSON.parse(station.level || '[]'); } catch(e) { parsedLvls = station.level ? [station.level] : []; }
         try { parsedPw = JSON.parse(station.power_kw || '[]'); } catch(e) { parsedPw = station.power_kw != null ? [station.power_kw] : []; }
         if (!Array.isArray(parsedConns)) parsedConns = [parsedConns];
-        if (!Array.isArray(parsedLvls)) parsedLvls = [parsedLvls];
         if (!Array.isArray(parsedPw)) parsedPw = [parsedPw];
         for (var ci = 0; ci < editPoints; ci++) {
           var row = document.createElement('div');
           row.className = 'connector-row new-station-row';
           row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
-            '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>' +
-            '<div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" value="' + (parsedPw[ci] != null ? parsedPw[ci] : '') + '" /></div>';
+            '<div class="form-group" style="flex:1;"><select class="conn-power"></select></div>';
           adminConnContainer.appendChild(row);
           if (parsedConns[ci]) row.querySelector('.conn-type').value = parsedConns[ci];
-          if (parsedLvls[ci]) row.querySelector('.conn-level').value = parsedLvls[ci];
+          var pwSel = row.querySelector('.conn-power');
+          pwSel.innerHTML = getPowerOptions(parsedConns[ci] || '');
+          if (parsedPw[ci] != null) pwSel.value = String(parsedPw[ci]);
+          row.querySelector('.conn-type').addEventListener('change', function() {
+            this.closest('.connector-row').querySelector('.conn-power').innerHTML = getPowerOptions(this.value);
+          });
         }
         document.getElementById('edit-st-points').addEventListener('input', function() {
           var nc = parseInt(this.value) || 1;
           var cur = adminConnContainer.querySelectorAll('.connector-row').length;
-          if (nc > cur) { for (var k = cur; k < nc; k++) { var r = document.createElement('div'); r.className = 'connector-row new-station-row'; r.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div><div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div><div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" /></div>'; adminConnContainer.appendChild(r); } }
+          if (nc > cur) { for (var k = cur; k < nc; k++) { var r = document.createElement('div'); r.className = 'connector-row new-station-row'; r.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div><div class="form-group" style="flex:1;"><select class="conn-power"></select></div>'; r.querySelector('.conn-type').addEventListener('change', function() { this.closest('.connector-row').querySelector('.conn-power').innerHTML = getPowerOptions(this.value); }); adminConnContainer.appendChild(r); } }
           else if (nc < cur) { while (adminConnContainer.children.length > nc) adminConnContainer.removeChild(adminConnContainer.lastChild); }
         });
 
