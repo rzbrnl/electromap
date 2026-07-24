@@ -1474,9 +1474,7 @@
       document.getElementById('edit-station-modal').classList.add('hidden');
       if (editStationMap) { editStationMap.remove(); editStationMap = null; }
       showToast('Estación actualizada');
-      // Clear cache and reload
-      ChargerData.clearCache && ChargerData.clearCache();
-      loadChargers();
+      setTimeout(function() { window.location.reload(); }, 1000);
     } else {
       showToast('Error al guardar');
     }
