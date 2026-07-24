@@ -3,6 +3,33 @@
   'use strict';
   var allChargers = [];
   var filteredChargers = [];
+
+  // Lazy loading utility for base64 images
+  var lazyObserver = null;
+  function initLazyLoader() {
+    if (lazyObserver || typeof IntersectionObserver === 'undefined') return;
+    lazyObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var img = entry.target;
+          if (img.dataset.src) {
+            img.src = img.dataset.src;
+            img.removeAttribute('data-src');
+          }
+          lazyObserver.unobserve(img);
+        }
+      });
+    }, { rootMargin: '100px' });
+  }
+
+  function observeLazyImages(container) {
+    if (!container) return;
+    var imgs = container.querySelectorAll('img[data-src]');
+    imgs.forEach(function(img) {
+      if (lazyObserver) lazyObserver.observe(img);
+      else { img.src = img.dataset.src; img.removeAttribute('data-src'); }
+    });
+  }
   var currentTheme = 'dark';
   var currentUnit = 'km';
   var filtersVisible = false;
@@ -12,12 +39,13 @@
 
   async function init() {
     ChargerMap.init(onChargerSelect);
-    await SupabaseApp.init();
+    await     SupabaseApp.init();
     checkResetToken();
     loadSavedTheme();
     setupEventListeners();
     detectLocation();
     checkAdminHeader();
+    initLazyLoader();
   }
 
   function loadSavedTheme() {
@@ -797,8 +825,9 @@
     var user = await getCurrentUser();
     grid.innerHTML = photos.map(function(p) {
       var del = user && p.user_id === user.id ? '<button class="photo-delete-btn" data-id="' + p.id + '">×</button>' : '';
-      return '<div class="photo-thumb-wrap"><img src="' + p.url + '" alt="' + (p.caption || 'Foto') + '" loading="lazy" onerror="this.parentElement.style.display=\'none\'" class="community-photo-thumb">' + del + '</div>';
+      return '<div class="photo-thumb-wrap"><img data-src="' + p.url + '" alt="' + (p.caption || 'Foto') + '" onerror="this.parentElement.style.display=\'none\'" class="community-photo-thumb">' + del + '</div>';
     }).join('');
+    observeLazyImages(grid);
     grid.querySelectorAll('.community-photo-thumb').forEach(function(img) {
       img.addEventListener('click', function() { openLightbox(this.src); });
     });
@@ -830,8 +859,9 @@
     }
     if (emptyEl) emptyEl.style.display = 'none';
     container.innerHTML = photos.map(function(p) {
-      return '<div class="photo-thumb-wrap"><img src="' + p.url + '" class="community-photo-thumb" loading="lazy"><button class="photo-delete-btn" data-id="' + p.id + '">×</button></div>';
+      return '<div class="photo-thumb-wrap"><img data-src="' + p.url + '" class="community-photo-thumb" loading="lazy"><button class="photo-delete-btn" data-id="' + p.id + '">×</button></div>';
     }).join('');
+    observeLazyImages(container);
     container.querySelectorAll('.community-photo-thumb').forEach(function(img) {
       img.addEventListener('click', function() { openLightbox(this.src); });
     });
