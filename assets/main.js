@@ -829,7 +829,7 @@
     }).join('');
     observeLazyImages(grid);
     grid.querySelectorAll('.community-photo-thumb').forEach(function(img) {
-      img.addEventListener('click', function() { openLightbox(this.src); });
+      img.addEventListener('click', function() { openLightbox(this.dataset.src || this.src); });
     });
     grid.querySelectorAll('.photo-delete-btn').forEach(function(btn) {
       btn.addEventListener('click', async function(e) {
@@ -863,7 +863,7 @@
     }).join('');
     observeLazyImages(container);
     container.querySelectorAll('.community-photo-thumb').forEach(function(img) {
-      img.addEventListener('click', function() { openLightbox(this.src); });
+      img.addEventListener('click', function() { openLightbox(this.dataset.src || this.src); });
     });
     container.querySelectorAll('.photo-delete-btn').forEach(function(btn) {
       btn.addEventListener('click', async function(e) {
