@@ -1112,7 +1112,7 @@
     var descParts = [];
     if (connectorJson) descParts.push('Conector: ' + (connectors.length > 1 ? connectors.map(function(c) { return c.type; }).join(', ') : connectorJson));
     if (levelJson) descParts.push('Nivel: ' + (connectors.length > 1 ? connectors.map(function(c) { return c.level; }).filter(Boolean).join(', ') : mainLevel));
-    if (power) descParts.push('Potencia: ' + power + ' kW');
+    if (powerJson) descParts.push('Potencia: ' + (connectors.length > 1 ? connectors.map(function(c) { return c.power; }).join(', ') : powerJson) + ' kW');
     if (points) descParts.push('Puntos: ' + points);
     if (cost) descParts.push('Costo: ' + cost);
     if (operator) descParts.push('Operador: ' + operator);
