@@ -2017,6 +2017,7 @@
           var mainLvl = connectors.length > 0 ? connectors[0].level : null;
           var connJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.type; })) : mainConn;
           var lvlJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.level; })) : mainLvl;
+          var powerJson = connectors.length > 1 ? JSON.stringify(connectors.map(function(c) { return c.power; })) : (connectors[0] && connectors[0].power ? connectors[0].power : null);
 
           var result = await SupabaseApp.approveStation({
             name: name,
