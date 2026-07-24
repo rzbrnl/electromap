@@ -2376,8 +2376,8 @@ textarea:focus {
 @media (max-width: 768px) {
   .top-btn-label { display: none; }
   .top-btn-accent { padding: 6px 10px; font-size: 0; gap: 0; }
-  .top-btn-accent svg { margin: 0; }
-  .top-btn-accent::after { content: '+'; font-size: 18px; font-weight: 700; }
+  .top-btn-accent svg { display: none; }
+  .top-btn-accent::after { content: '+'; font-size: 20px; font-weight: 700; line-height: 1; }
   .top-actions { gap: 4px; }
   .logo span { font-size: 16px; }
 
