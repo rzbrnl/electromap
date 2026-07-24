@@ -152,7 +152,7 @@ var SupabaseApp = (function() {
   async function getApprovedStations() {
     if (!client) return [];
     const { data, error } = await client.from('approved_stations')
-      .select('*')
+      .select('id, name, address, lat, lng, connector, level, power_kw, points, cost, operator, status, charger_id, status_id, created_at')
       .order('created_at', { ascending: false });
     return error ? [] : data;
   }
