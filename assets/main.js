@@ -469,6 +469,7 @@
     document.getElementById('close-report').addEventListener('click', function() { document.getElementById('report-modal').classList.add('hidden'); });
     document.getElementById('report-form').addEventListener('submit', submitReport);
     document.getElementById('btn-add-station').addEventListener('click', showNewStationModal);
+    document.getElementById('btn-add-station-mobile').addEventListener('click', showNewStationModal);
     document.getElementById('close-new-station').addEventListener('click', function() { document.getElementById('new-station-modal').classList.add('hidden'); if (stationPickerMap) { stationPickerMap.remove(); stationPickerMap = null; } });
     document.getElementById('new-station-form').addEventListener('submit', submitNewStation);
     document.getElementById('close-edit-station').addEventListener('click', function() { document.getElementById('edit-station-modal').classList.add('hidden'); if (editStationMap) { editStationMap.remove(); editStationMap = null; } });

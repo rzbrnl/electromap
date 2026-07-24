@@ -259,6 +259,29 @@ button.top-btn-accent:hover {
   color: white !important;
 }
 
+button.top-btn-accent-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  button.top-btn-accent { display: none; }
+  button.top-btn-accent-mobile {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    background: #22c55e !important;
+    color: white !important;
+    border: none !important;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  button.top-btn-accent-mobile:hover {
+    background: #16a34a !important;
+  }
+}
+
 /* Map */
 #map {
   position: fixed;
@@ -2374,9 +2397,6 @@ textarea:focus {
 
 /* Mobile responsive */
 @media (max-width: 768px) {
-  .top-btn-label { display: none; }
-  .top-btn-accent { padding: 8px 12px; }
-  .top-btn-accent svg { width: 20px !important; height: 20px !important; }
   .top-actions { gap: 2px; }
   .top-actions .top-btn { width: 32px; height: 32px; }
   .top-actions .top-btn svg { width: 16px; height: 16px; }
