@@ -2372,8 +2372,72 @@ textarea:focus {
   color: rgba(255,255,255,0.7);
 }
 
-@media (max-width: 500px) {
-  .admin-layout { flex-direction: column; }
-  .admin-sidebar { width: 100%; flex-direction: row; overflow-x: auto; }
-  .admin-photo-grid { grid-template-columns: repeat(2, 1fr); }
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .top-btn-label { display: none; }
+  .top-btn-accent { padding: 6px 10px; font-size: 0; gap: 0; }
+  .top-btn-accent svg { margin: 0; }
+  .top-btn-accent::after { content: '+'; font-size: 18px; font-weight: 700; }
+  .top-actions { gap: 4px; }
+  .logo span { font-size: 16px; }
+
+  .sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    bottom: 0;
+    top: auto;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  #bottombar {
+    bottom: 0;
+    font-size: 12px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .new-station-grid {
+    flex-direction: column;
+  }
+
+  .new-station-map-col {
+    min-height: 200px;
+  }
+
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 4px;
+  }
+
+  .admin-content {
+    max-height: none;
+  }
+
+  .modal-content {
+    margin: 10px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-content-wide {
+    max-width: 95vw;
+  }
+
+  .connector-row {
+    flex-direction: column;
+  }
+
+  .connector-row .form-group {
+    width: 100%;
+  }
 }
