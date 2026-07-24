@@ -1846,16 +1846,20 @@
         var adminConnContainer = document.getElementById('admin-edit-connector-rows');
         var editPoints = station.points || 1;
         var parsedConns = [];
-        try { parsedConns = JSON.parse(station.connector || '[]'); } catch(e) { parsedConns = station.connector ? [station.connector] : []; }
         var parsedLvls = [];
+        var parsedPw = [];
+        try { parsedConns = JSON.parse(station.connector || '[]'); } catch(e) { parsedConns = station.connector ? [station.connector] : []; }
         try { parsedLvls = JSON.parse(station.level || '[]'); } catch(e) { parsedLvls = station.level ? [station.level] : []; }
+        try { parsedPw = JSON.parse(station.power_kw || '[]'); } catch(e) { parsedPw = station.power_kw != null ? [station.power_kw] : []; }
         if (!Array.isArray(parsedConns)) parsedConns = [parsedConns];
         if (!Array.isArray(parsedLvls)) parsedLvls = [parsedLvls];
+        if (!Array.isArray(parsedPw)) parsedPw = [parsedPw];
         for (var ci = 0; ci < editPoints; ci++) {
           var row = document.createElement('div');
           row.className = 'connector-row new-station-row';
           row.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div>' +
-            '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>';
+            '<div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>' +
+            '<div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" value="' + (parsedPw[ci] != null ? parsedPw[ci] : '') + '" /></div>';
           adminConnContainer.appendChild(row);
           if (parsedConns[ci]) row.querySelector('.conn-type').value = parsedConns[ci];
           if (parsedLvls[ci]) row.querySelector('.conn-level').value = parsedLvls[ci];
@@ -1863,7 +1867,7 @@
         document.getElementById('edit-st-points').addEventListener('input', function() {
           var nc = parseInt(this.value) || 1;
           var cur = adminConnContainer.querySelectorAll('.connector-row').length;
-          if (nc > cur) { for (var k = cur; k < nc; k++) { var r = document.createElement('div'); r.className = 'connector-row new-station-row'; r.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div><div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div>'; adminConnContainer.appendChild(r); } }
+          if (nc > cur) { for (var k = cur; k < nc; k++) { var r = document.createElement('div'); r.className = 'connector-row new-station-row'; r.innerHTML = '<div class="form-group" style="flex:1;"><select class="conn-type">' + connectorOptions + '</select></div><div class="form-group" style="flex:1;"><select class="conn-level">' + levelOptions + '</select></div><div class="form-group" style="flex:1;"><input type="number" class="conn-power" placeholder="kW" min="0" /></div>'; adminConnContainer.appendChild(r); } }
           else if (nc < cur) { while (adminConnContainer.children.length > nc) adminConnContainer.removeChild(adminConnContainer.lastChild); }
         });
 
