@@ -124,7 +124,7 @@ var ChargerMap = (function() {
     var center = bounds.getCenter();
     var ne = bounds.getNorthEast();
     var dist = center.distanceTo(ne) / 1000;
-    return Math.min(Math.ceil(dist), 100);
+    return Math.min(Math.ceil(dist), 2000);
   }
   function onMapEvent(event, callback) { if (map) map.on(event, callback); }
 
