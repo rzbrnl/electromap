@@ -2024,7 +2024,7 @@
             lat: lat, lng: lng,
             connector: connJson,
             level: lvlJson,
-            power: parseFloat(document.getElementById('new-st-power').value) || null,
+            power: powerJson,
             points: parseInt(document.getElementById('new-st-points').value) || 1,
             cost: document.getElementById('new-st-cost').value || null,
             operator: document.getElementById('new-st-operator').value.trim() || null,
