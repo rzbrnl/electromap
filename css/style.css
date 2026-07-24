@@ -914,6 +914,7 @@ button.top-btn-accent:hover {
   font-family: "Google Sans", sans-serif !important;
   box-shadow: var(--shadow-lg) !important;
   padding: 8px 12px !important;
+  text-align: center !important;
 }
 
 .charger-tooltip::before {
