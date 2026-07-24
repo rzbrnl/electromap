@@ -470,6 +470,9 @@
     document.getElementById('report-form').addEventListener('submit', submitReport);
     document.getElementById('btn-add-station').addEventListener('click', showNewStationModal);
     document.getElementById('btn-add-station-mobile').addEventListener('click', showNewStationModal);
+    document.getElementById('btn-route').addEventListener('click', openRoutePlanner);
+    document.getElementById('close-route').addEventListener('click', function() { document.getElementById('route-modal').classList.add('hidden'); });
+    document.getElementById('btn-plan-route').addEventListener('click', planRoute);
     document.getElementById('close-new-station').addEventListener('click', function() { document.getElementById('new-station-modal').classList.add('hidden'); if (stationPickerMap) { stationPickerMap.remove(); stationPickerMap = null; } });
     document.getElementById('new-station-form').addEventListener('submit', submitNewStation);
     document.getElementById('close-edit-station').addEventListener('click', function() { document.getElementById('edit-station-modal').classList.add('hidden'); if (editStationMap) { editStationMap.remove(); editStationMap = null; } });
@@ -489,7 +492,7 @@
       moveTimeout = setTimeout(function() { loadChargers(); }, 500);
     });
 
-    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); hideAuthModal(); document.getElementById('report-modal').classList.add('hidden'); document.getElementById('new-station-modal').classList.add('hidden'); document.getElementById('edit-station-modal').classList.add('hidden'); } });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideSidebar(); hideFilters(); hideAuthModal(); document.getElementById('report-modal').classList.add('hidden'); document.getElementById('new-station-modal').classList.add('hidden'); document.getElementById('edit-station-modal').classList.add('hidden'); document.getElementById('route-modal').classList.add('hidden'); } });
   }
 
   // === AUTH VIEWS ===
@@ -1423,6 +1426,125 @@
       showToast('Sesión cerrada');
       setTimeout(function() { window.location.reload(); }, 1000);
     });
+  }
+
+  // === ROUTE PLANNER ===
+  var routePolyline = null;
+  var routeStops = [];
+
+  function openRoutePlanner() {
+    document.getElementById('route-modal').classList.remove('hidden');
+    if (userLat && userLng) {
+      document.getElementById('route-origin').value = 'Mi ubicación actual';
+    }
+  }
+
+  async function planRoute() {
+    var origin = document.getElementById('route-origin').value.trim();
+    var dest = document.getElementById('route-destination').value.trim();
+    var range = parseInt(document.getElementById('route-range').value) || 300;
+    var margin = parseInt(document.getElementById('route-margin').value) || 20;
+    var resultsEl = document.getElementById('route-results');
+
+    if (!dest) { showToast('Escribe un destino'); return; }
+
+    // Get origin coordinates
+    var originLat, originLng;
+    if (origin === 'Mi ubicación actual' || !origin) {
+      if (!userLat || !userLng) { showToast('No se pudo obtener tu ubicación'); return; }
+      originLat = userLat; originLng = userLng;
+    } else {
+      var originData = await fetch('/api/places?type=autocomplete&q=' + encodeURIComponent(origin)).then(function(r) { return r.json(); });
+      if (originData.status !== 'OK' || !originData.results || !originData.results[0]) { showToast('No se encontró el origen'); return; }
+      originLat = originData.results[0].geometry.location.lat;
+      originLng = originData.results[0].geometry.location.lng;
+    }
+
+    // Get destination coordinates
+    var destData = await fetch('/api/places?type=autocomplete&q=' + encodeURIComponent(dest)).then(function(r) { return r.json(); });
+    if (destData.status !== 'OK' || !destData.results || !destData.results[0]) { showToast('No se encontró el destino'); return; }
+    var destLat = destData.results[0].geometry.location.lat;
+    var destLng = destData.results[0].geometry.location.lng;
+
+    resultsEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);">Calculando ruta...</div>';
+
+    // Get route from OSRM
+    var routeUrl = 'https://router.project-osrm.org/route/v1/driving/' + originLng + ',' + originLat + ';' + destLng + ',' + destLat + '?overview=full&geometries=geojson';
+    var routeResp = await fetch(routeUrl).then(function(r) { return r.json(); });
+    if (routeResp.code !== 'Ok' || !routeResp.routes || !routeResp.routes[0]) {
+      showToast('No se pudo calcular la ruta');
+      resultsEl.innerHTML = '';
+      return;
+    }
+
+    var route = routeResp.routes[0];
+    var totalKm = (route.distance / 1000).toFixed(0);
+    var totalMin = Math.round(route.duration / 60);
+    var coords = route.geometry.coordinates;
+
+    // Find charging stops along the route
+    var effectiveRange = range * (1 - margin / 100);
+    var stops = [];
+    var lastStopKm = 0;
+    var allChargers = await ChargerData.fetchChargers(originLat, originLng, 2000);
+
+    for (var i = 0; i < coords.length; i++) {
+      var distFromStart = haversineDistance(originLat, originLng, coords[i][1], coords[i][0]);
+      if (distFromStart - lastStopKm >= effectiveRange) {
+        // Find nearest charger to this point
+        var nearest = null;
+        var nearestDist = Infinity;
+        allChargers.forEach(function(c) {
+          var d = haversineDistance(coords[i][1], coords[i][0], c.lat, c.lng);
+          if (d < nearestDist && d < 20) {
+            nearestDist = d;
+            nearest = c;
+          }
+        });
+        if (nearest) {
+          stops.push({ charger: nearest, distFromStart: distFromStart });
+          lastStopKm = distFromStart;
+        }
+      }
+    }
+
+    // Display results
+    routeStops = stops;
+    resultsEl.innerHTML =
+      '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;">' +
+        '<div style="font-weight:600;color:var(--text);margin-bottom:4px;">Resumen de ruta</div>' +
+        '<div style="font-size:13px;color:var(--text-muted);">Distancia total: <b>' + totalKm + ' km</b> · Duración: <b>' + formatDuration(totalMin) + '</b></div>' +
+        '<div style="font-size:13px;color:var(--text-muted);">Paradas de carga sugeridas: <b>' + stops.length + '</b></div>' +
+      '</div>' +
+      stops.map(function(s, i) {
+        var power = s.charger.connections && s.charger.connections[0] ? (s.charger.connections[0].powerKW || '') : '';
+        return '<div class="admin-report-item">' +
+          '<div class="admin-report-header"><span class="admin-row-name">' + (i + 1) + '. ' + s.charger.name + '</span><span style="font-size:12px;color:var(--text-muted);">' + s.distFromStart.toFixed(0) + ' km</span></div>' +
+          '<div class="admin-report-desc">' + (s.charger.address || '') + '</div>' +
+          '<div class="admin-report-desc">' + s.charger.operator + (power ? ' · ' + power + ' kW' : '') + '</div>' +
+          '<div class="admin-report-actions"><button class="admin-action-btn" onclick="ChargerMap.centerOnLocation(' + s.charger.lat + ',' + s.charger.lng + ',15);ChargerMap.showSidebar(' + JSON.stringify(s.charger).replace(/"/g, '&quot;') + ')">Ver en mapa</button></div>' +
+        '</div>';
+      }).join('') ||
+      '<div style="text-align:center;padding:16px;color:var(--text-muted);">No se encontraron cargadores necesarios en esta ruta. Tu autonomía podría ser suficiente.</div>';
+
+    // Show route on map
+    if (routePolyline) { ChargerMap.removeRoute(); }
+    ChargerMap.showRoute(originLat, originLng, destLat, destLng, dest);
+  }
+
+  function haversineDistance(lat1, lng1, lat2, lng2) {
+    var R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLng = (lng2 - lng1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function formatDuration(minutes) {
+    if (minutes < 60) return minutes + ' min';
+    var h = Math.floor(minutes / 60);
+    var m = minutes % 60;
+    return h + 'h ' + m + 'min';
   }
 
   // === EDIT STATION MODAL (ADMIN) ===

@@ -314,6 +314,9 @@
         <button class="top-btn" id="btn-location" title="Mi ubicación">
           <svg class="icon" width="18" height="18"><use href="#icon-location"></use></svg>
         </button>
+        <button class="top-btn" id="btn-route" title="Planear ruta">
+          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h1m4 0h1m4 0h1m4 0h1"></path><circle cx="3" cy="17" r="1.5" fill="currentColor"></circle><circle cx="21" cy="7" r="1.5" fill="currentColor"></circle></svg>
+        </button>
         <button class="top-btn" id="btn-theme" title="Cambiar tema">
           <svg class="icon icon-sun" width="18" height="18"><use href="#icon-sun"></use></svg>
           <svg class="icon icon-moon" width="18" height="18" style="display: none"><use href="#icon-moon"></use></svg>
@@ -813,6 +816,38 @@
             <button class="btn-primary" id="btn-save-charger-edit" style="width:100%;">Guardar cambios</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Route Planner Modal -->
+    <div id="route-modal" class="modal hidden">
+      <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header">
+          <h3>Planear ruta de carga</h3>
+          <button class="close-btn" id="close-route">
+            <svg class="icon" width="14" height="14"><use href="#icon-close"></use></svg>
+          </button>
+        </div>
+        <div class="form-group">
+          <label>Origen</label>
+          <input type="text" id="route-origin" placeholder="Tu ubicación actual" />
+        </div>
+        <div class="form-group">
+          <label>Destino</label>
+          <input type="text" id="route-destination" placeholder="¿A dónde vas?" />
+        </div>
+        <div class="new-station-row">
+          <div class="form-group" style="flex:1;">
+            <label>Autonomía del auto (km)</label>
+            <input type="number" id="route-range" value="300" min="50" max="1000" />
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>Margen de seguridad (%)</label>
+            <input type="number" id="route-margin" value="20" min="0" max="50" />
+          </div>
+        </div>
+        <button class="btn-primary" id="btn-plan-route" style="width:100%;">Calcular ruta</button>
+        <div id="route-results" style="margin-top:16px;"></div>
       </div>
     </div>
 
